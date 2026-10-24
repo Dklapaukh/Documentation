@@ -1,0 +1,19 @@
+{
+  "source": "MNIST via official Keras dataset mirror",
+  "source_url": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+  "architecture": "784 \u2192 64 ReLU \u2192 10 softmax",
+  "training_examples": 60000,
+  "held_out_test_examples": 10000,
+  "held_out_test_accuracy": 0.9727,
+  "epochs": 24,
+  "seed": 27,
+  "seconds": 7.0,
+  "scope": "Isolated MNIST digits only. NOT clinical handwriting validation.",
+  "authors": "MNIST: Yann LeCun, Corinna Cortes and Christopher J. C. Burges",
+  "dataset_reference": "https://keras.io/api/datasets/mnist/",
+  "model_license": "CC BY-SA 3.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "clinical_limitations": "Isolated-digit test accuracy is not real handwriting or clinical validation. Segmentation, decimal marks and natural pen input can fail. Review displayed readings before saving.",
+  "fit_examples": 54000,
+  "validation_examples": 6000
+}

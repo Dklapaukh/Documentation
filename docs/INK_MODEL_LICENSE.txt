@@ -1,0 +1,24 @@
+Handwritten digit model and test fixtures
+
+MNIST authors: Yann LeCun, Corinna Cortes and Christopher J. C. Burges.
+Dataset reference: https://keras.io/api/datasets/mnist/
+Original dataset: http://yann.lecun.com/exdb/mnist/
+Official Keras mirror: https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
+
+MNIST is supplied under Creative Commons Attribution-ShareAlike 3.0:
+https://creativecommons.org/licenses/by-sa/3.0/
+
+The bundled ink-model.bin is a newly trained 784-input, 64-ReLU, 10-softmax
+digit classifier, distributed under the same CC BY-SA 3.0 terms. The small
+MNIST test excerpt in tests/fixtures/mnist-digits.bin uses the same terms.
+This notice applies to these model/data assets, not the app's other source
+files or the separately attributed clinical reference PDFs.
+
+Model changes: trained for 24 epochs with scikit-learn MLPClassifier, seed 27.
+10,000 isolated held-out MNIST digits: 97.27% classification accuracy.
+This benchmark does not establish accuracy for natural multi-digit writing,
+decimal recognition, segmentation, medical use, or any tablet/stylus.
+
+All application recognition runs locally. No patient ink is sent to an OCR API.
+The displayed numeric reading is a draft until the clinician reviews and saves.
+Training reproduction: see tools/train-ink-model.py and README.md.

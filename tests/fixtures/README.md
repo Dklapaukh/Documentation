@@ -1,0 +1,1 @@
+100 isolated held-out MNIST test images, ten per class, used as an implementation smoke test. Each record is one label byte followed by 784 image bytes. Attribution and CC BY-SA 3.0: see docs/INK_MODEL_LICENSE.txt (also shipped with the web app). These fixtures do not validate natural handwriting.

@@ -350,7 +350,7 @@ const GUIDANCE = {
  * Red-flag prompts are a selected documentation aid, not a complete guideline.
  */
 const LOCAL = {
- schemaVersion: '3.0',
+ schemaVersion: '6.0',
  social: [
   {id:'lives_alone',label:'Lives alone',group:'home'},
   {id:'lives_with_family',label:'Lives with family / whānau',group:'home'},
@@ -450,4 +450,59 @@ const DIAGNOSIS = {
    {id:'reduced_mobility',label:'Newly impaired mobility, with weight-bearing still possible'}
   ]
  }
+};
+
+/* Disposition references reviewed 24 October 2026.
+ * These are links and fixed educational prompts, not locally calculated rules.
+ * 'Not assessed' is a distinct persisted value and never treated as No.
+ */
+const FALLS_ASSESSMENT = {
+ states: ['Yes','No','Not assessed'],
+ items: [
+  {id:'head_strike',label:'Head strike reported',level:'warning',title:'Review head injury assessment',prompt:'Review head injury guidance and the injury history before disposition; assess any concerning or evolving symptoms.'},
+  {id:'anticoagulants',label:'Anticoagulant use reported',level:'warning',title:'Review bleeding and head injury considerations',prompt:'Consider the reported anticoagulant and relevant bleeding risk, including possible head injury. Review the applicable head injury guidance; this finding alone does not determine disposition.'},
+  {id:'new_mobility',label:'New mobility difficulty',level:'caution',title:'Further mobility assessment before disposition',prompt:'Compare mobility with baseline and assess the new limitation. Review the existing red/orange flag distinctions; this checkbox does not establish whether the patient can weight bear.'},
+  {id:'recurrent_falls',label:'Recurrent falls',level:'referral',title:'Review falls prevention referral eligibility',prompt:'Review the falls prevention pathway and eligibility criteria below. Recurrent falls alone do not automatically establish eligibility or a safe disposition.'}
+ ],
+ eligibility: 'The CPG calls for a falls-risk assessment when the patient is aged 65 or over, lives independently and is not being transported to ED by ambulance. When abnormalities are identified, the guideline calls for consent and referral to a falls prevention service, or GP referral if no pathway is available. Residential-care facilities manage their residents’ falls prevention; independent units within a care complex count as independent living.'
+};
+const DISPOSITION_RESOURCES = {
+ checked:'2026-10-24',
+ pe: {
+  title:'Pulmonary Embolism (PE)',
+  tools:[
+   {label:'Wells’ Criteria for PE · MDCalc',url:'https://www.mdcalc.com/calc/115/wells-criteria-pulmonary-embolism',description:'Estimates clinical pre-test probability to support selection of an appropriate PE diagnostic pathway. It is not a stand-alone diagnostic test or a disposition decision.'},
+   {label:'PERC Rule · MDCalc',url:'https://www.mdcalc.com/calc/347/perc-rule-pulmonary-embolism',description:'Use only after sufficiently low clinical pre-test probability has been established. A negative result is not valid for moderate- or high-risk patients. Check population restrictions and exclusions.'},
+   {label:'YEARS Algorithm · MDCalc',url:'https://www.mdcalc.com/calc/4067/years-algorithm-for-pulmonary-embolism-pe',description:'Combines clinical assessment with D-dimer testing to guide further investigation. Requires the appropriate D-dimer assay, units and thresholds; do not apply it to haemodynamically unstable patients.'}
+  ]
+ },
+ ankle:{
+  title:'Ankle Injury',
+  text:{label:'Text / clinical criteria · MDCalc',url:'https://www.mdcalc.com/calc/1670/ottawa-ankle-rule'},
+  video:{label:'Instructional video · Emergency Care BC',url:'https://emergencycarebc.ca/clinical_resource/procedural-video/ottawa-ankle-rules/'},
+  fallback:{label:'Same video · EM Ottawa (Dr Ian Stiell)',url:'https://www.youtube.com/watch?v=Dqq09sR0vuc'},
+  criteria:[
+   {label:'Malleolar zone',description:'With pain in this zone, ankle imaging criteria include bony tenderness at the posterior edge of the distal 6 cm or tip of either malleolus, or the weight-bearing criterion below.'},
+   {label:'Midfoot zone',description:'With pain in this zone, foot imaging criteria include bony tenderness over the navicular or base of the fifth metatarsal, or the weight-bearing criterion below.'},
+   {label:'Four-step weight bearing',description:'Inability to take four steps both immediately after injury and in the emergency department is an alternative imaging criterion for either painful zone. Document both timepoints; limping alone is not inability to take four steps.'}
+  ],
+  limitations:'Use only in an appropriate, alert patient with recent blunt ankle or midfoot trauma and a reliable examination. Check the source’s age and exclusion criteria and local policy. The rule informs radiography: a negative result does not establish a sprain or by itself justify non-transport.',
+  sources:['https://ohri.ca/en/find-researcher/istiell','https://aci.health.nsw.gov.au/ecat/appendices/ottawa-ankle-adult']
+ }
+};
+// Preserve existing topics and add the two requested guidance choices.
+DIAGNOSIS.options.splice(DIAGNOSIS.options.indexOf('Other'),0,'Pulmonary Embolism (PE)','Ankle Injury');
+
+
+/* A user-requested reminder, NOT a validated clinical decision rule.
+ * Restrict matching to the current Subjective / Objective fields. Explicit aliases
+ * support common spellings; do not broaden this into a generic diagnosis engine.
+ * The conservative phrase filter is not clinical language understanding.
+ */
+const PE_REMINDER = {
+ terms:[['tachycardia'],['hypotension','hyootension'],['hypoxia','hyoxia','hypoxaemia','hypoxemia']],
+ explanation:'PE can cause tachycardia, low blood pressure and impaired oxygenation. These findings are non-specific: consider PE alongside other causes.',
+ limitation:'Keyword prompt only — confirm findings and timing. This combination is not a validated rule; no prompt does not exclude PE.',
+ source:{label:'ESC pulmonary embolism guidance',url:'https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/acute-pulmonary-embolism/'},
+ checked:'2026-10-24'
 };
