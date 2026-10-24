@@ -350,7 +350,7 @@ const GUIDANCE = {
  * Red-flag prompts are a selected documentation aid, not a complete guideline.
  */
 const LOCAL = {
- schemaVersion: '2.0',
+ schemaVersion: '3.0',
  social: [
   {id:'lives_alone',label:'Lives alone',group:'home'},
   {id:'lives_with_family',label:'Lives with family / whānau',group:'home'},
@@ -406,3 +406,48 @@ const LOCAL = {
 };
 // GP/audit sections are intentionally absent from the app and guidance search.
 for (const key of Object.keys(GUIDANCE)) if (/Notes to GP|Flag for audit|Disposition Tab - Screen 2/.test(key)) delete GUIDANCE[key];
+
+/* Diagnosis-specific documentation. Checked against the official CPG PDFs on
+ * 24 October 2026 (PDF exports dated 24 September 2026).
+ * Display text is condensed; the source links remain available beside each panel.
+ * Drug guidance is a reference, never a pre-filled administration record.
+ */
+const DIAGNOSIS = {
+ options: ['Myocardial ischaemia', 'Falls', 'Other'],
+ myocardial: {
+  url: 'https://cpg.stjohn.org.nz/tabs/guidelines/cardiac-eas/page/myocardial-ischaemia-eas',
+  pdf: 'https://cpg.stjohn.org.nz/assets/pdf/guidelines/Myocardial%20Ischaemia%20-%20EAS.pdf',
+  scope: 'Adults with suspected myocardial ischaemia. STEMI requires the applicable PCI or fibrinolysis pathway.',
+  treatments: [
+   {id:'ecg_initial', action:'12-lead ECG', prompt:'Obtain an initial 12-lead ECG.'},
+   {id:'ecg_v4r', action:'V4R ECG', prompt:'Suspected inferior STEMI: obtain another 12-lead ECG with V4R positioning.'},
+   {id:'ecg_posterior', action:'Posterior ECG', prompt:'Suspected posterior STEMI: obtain another 12-lead ECG using V7–9 positions.'},
+   {id:'aspirin', action:'Aspirin PO', medication:true, prompt:'Give aspirin orally: 300 mg.'},
+   {id:'gtn_initial', action:'GTN SL', medication:true, prompt:'Give GTN sublingually: 0.4 mg.'},
+   {id:'gtn_repeat', action:'Repeat GTN SL', medication:true, prompt:'Repeat GTN at 5-minute intervals only while symptom relief continues; use 10-minute intervals when a caution applies.'},
+   {id:'opiate', action:'Opiate IV', medication:true, prompt:'For significant pain persisting after GTN, administer an IV opiate.'},
+   {id:'ecg_repeat', action:'Repeat 12-lead ECG', prompt:'Repeat 12-lead ECGs at 15–30-minute intervals to identify evolving changes.'}
+  ]
+ },
+ falls: {
+  url:'https://cpg.stjohn.org.nz/tabs/guidelines/miscellaneous-eas/page/falls-eas',
+  pdf:'https://cpg.stjohn.org.nz/assets/pdf/guidelines/Falls%20-%20EAS.pdf',
+  red:[
+   {id:'significant_injury',label:'Injury of clinical significance'},
+   {id:'significant_pain',label:'Pain of clinical significance'},
+   {id:'abnormal_vitals',label:'Vital signs outside the normal range'},
+   {id:'stroke',label:'Findings suggesting stroke'},
+   {id:'headache',label:'Headache with concerning characteristics'},
+   {id:'visual_change',label:'Newly developed visual disturbance'},
+   {id:'unable_mobilise',label:'Cannot mobilise despite normally being able to'},
+   {id:'unstable_condition',label:'A contributing medical condition that is not stable'}
+  ],
+  orange:[
+   {id:'recurrent_falls',label:'At least two falls during the preceding week'},
+   {id:'postural_hypotension',label:'Orthostatic (postural) hypotension'},
+   {id:'medication_change',label:'Medication changed recently'},
+   {id:'minor_injury',label:'Minor injury needing non-urgent care'},
+   {id:'reduced_mobility',label:'Newly impaired mobility, with weight-bearing still possible'}
+  ]
+ }
+};
