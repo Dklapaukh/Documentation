@@ -12,7 +12,9 @@ const ARREST_CONFIG={cycleMs:120000,adrenalineMs:240000,chargeSeconds:15,
   {label:'Cardiac arrest CPG',pdf:'cpg-cardiac-arrest.pdf'}
  ]};
 let arrestInterval=null,arrestReference='';
-function emptyArrestState(){return {id:null,phase:'Ready',startedAt:null,endedAt:null,deadline:null,remainingMs:120000,cycles:0,rhythm:'Not set',priorShocks:0,priorAmiodarone:0,group:'Adult',weight:'',special:false};}
+function arrestIsVfVt(rhythm){return ['VF','VT','VF / pulseless VT'].includes(rhythm);}
+function arrestJoules(weight){const w=validArrestWeight(weight);return w===null?null:Math.min(Math.round(w*4*10)/10,200);}
+function emptyArrestState(){return {id:null,phase:'Ready',startedAt:null,endedAt:null,deadline:null,remainingMs:120000,cycles:0,rhythm:'Not set',priorShocks:0,priorAmiodarone:0,group:'Adult',weight:'',weightSource:'Entered',age:'',adultDoseConfirmed:false,sidebarOpen:false,sidebarTab:'guidance',guidanceTopic:'overview',special:false};}
 function arrestTiming(a,now=Date.now()){
  const remainingMs=a.deadline===null?a.remainingMs:Math.max(0,a.deadline-now),seconds=Math.ceil(remainingMs/1000),active=a.phase==='Active';
  return {remainingMs,seconds,elapsed:a.startedAt===null?0:Math.max(0,(a.endedAt??now)-a.startedAt),running:active&&a.deadline!==null&&seconds>0,expired:active&&a.deadline!==null&&seconds===0,charge:active&&!a.special&&a.deadline!==null&&seconds>0&&seconds<=15};
@@ -22,7 +24,7 @@ function arrestShockCount(a,events){return a.priorShocks+arrestCaseEvents(a,even
 function arrestReminders(a,events,now=Date.now()){
  const caseEvents=arrestCaseEvents(a,events),adrenaline=caseEvents.filter(e=>e.arrestAction==='adrenaline'&&e.name.toLowerCase()==='adrenaline').sort((x,y)=>new Date(x.at)-new Date(y.at)),last=adrenaline.at(-1),amiodarone=a.priorAmiodarone+caseEvents.filter(e=>e.arrestAction==='amiodarone'&&e.name.toLowerCase()==='amiodarone').length,shocks=arrestShockCount(a,events),enabled=a.phase==='Active'&&!a.special;
  const remaining=last?new Date(last.at).getTime()+ARREST_CONFIG.adrenalineMs-now:null;
- return {enabled,adrenalineRemaining:remaining,adrenalineDue:enabled&&remaining!==null&&remaining<=0,futureDrugTime:!!last&&new Date(last.at).getTime()>now,amiodaroneDue:enabled&&a.rhythm==='VF / pulseless VT'&&((shocks>=3&&amiodarone===0)||(shocks>=6&&amiodarone===1)),amiodaroneDoseNumber:amiodarone===0?1:2,amiodaroneCount:amiodarone,shocks};
+ return {enabled,adrenalineRemaining:remaining,adrenalineDue:enabled&&remaining!==null&&remaining<=0,futureDrugTime:!!last&&new Date(last.at).getTime()>now,amiodaroneDue:enabled&&arrestIsVfVt(a.rhythm)&&((shocks>=3&&amiodarone===0)||(shocks>=6&&amiodarone===1)),amiodaroneDoseNumber:amiodarone===0?1:2,amiodaroneCount:amiodarone,shocks};
 }
 function arrestDoseReference(group,weight){
  if(group==='Adult')return {label:'Adult reference',shock:'Maximum setting on the defibrillator',adrenaline:'1 mg IV',amiodarone1:'300 mg IV',amiodarone2:'150 mg IV'};
@@ -42,59 +44,130 @@ function startArrestCycle(now=Date.now()){
 }
 function pauseArrestCycle(now=Date.now()){
  const a=state.arrest;if(a.phase!=='Active')return;
- if(a.deadline!==null){a.remainingMs=arrestTiming(a,now).remainingMs;a.deadline=null;}else if(a.remainingMs>0)a.deadline=now+a.remainingMs;
+ if(a.deadline!==null){const remaining=arrestTiming(a,now).remainingMs;if(remaining===0){updateArrestClock(now);return;}a.remainingMs=remaining;a.deadline=null;}else if(a.remainingMs>0)a.deadline=now+a.remainingMs;
  updateArrestClock();
 }
 function stopArrest(phase,now=Date.now()){
- const a=state.arrest;a.remainingMs=arrestTiming(a,now).remainingMs;a.deadline=null;a.phase=phase;a.endedAt=now;arrestStamp(phase==='ROSC'?'rosc':'ended',now);if(phase==='ROSC')showArrestReference('cpg-post-rosc.pdf#page=2','Post ROSC checklist');updateArrestClock();
+ const a=state.arrest;a.remainingMs=arrestTiming(a,now).remainingMs;a.deadline=null;a.phase=phase;a.endedAt=now;arrestStamp(phase==='ROSC'?'rosc':'ended',now);updateArrestClock();
 }
 function openArrest(){
  if($('careModal').open)stashCareDraft();if($('wheelModal').open)$('wheelModal').close();renderArrest();$('arrestModal').showModal();
  if(arrestInterval===null)arrestInterval=setInterval(()=>{if(typeof state==='undefined')return;if($('arrestModal').open)updateArrestClock();const badge=$('arrestBadge');if(badge)badge.textContent=state.arrest.phase==='Active'?clockText(arrestTiming(state.arrest).remainingMs):'';const attention=arrestReminders(state.arrest,state.careEvents);$('arrestButton').classList.toggle('arrest-attention',state.arrest.phase==='Active'&&(arrestTiming(state.arrest).expired||attention.adrenalineDue||attention.amiodaroneDue));},250);
 }
+
+// The console is fixed to the viewport; only the contextual sidebar scrolls.
 function renderArrest(){
  const a=state.arrest;
- $('arrestModal').innerHTML=`<div class="arrest-shell"><div class="arrest-header"><div><b>Cardiac arrest <small id="arrestMiniClock"></small></b><span>PROOF OF CONCEPT · standard non-traumatic CPG</span></div><div><button class="quiet" data-arrest-weight>Patient weight / doses</button><button class="quiet" data-arrest-close>Notes ↗</button></div></div><div class="arrest-body"><section class="arrest-instrument"><div class="arrest-status"><span id="arrestCycleLabel"></span><span id="arrestElapsed"></span><span id="arrestShockCount"></span></div><div class="arrest-dial" id="arrestDial"><svg viewBox="0 0 220 220" aria-hidden="true"><circle class="dial-track" cx="110" cy="110" r="96"/><circle id="arrestArc" class="dial-progress" cx="110" cy="110" r="96"/></svg><div><strong id="arrestCountdown" role="timer" aria-label="Two minute cycle countdown">02:00</strong><span id="arrestPhase">Ready</span></div></div><div id="arrestCharge"></div><span id="arrestAlert" class="sr-only" role="status" aria-live="polite"></span><div class="arrest-cycle-controls"><button data-arrest-start id="arrestStart">Start 2 minutes</button><button class="quiet" data-arrest-pause id="arrestPause">Pause cycle</button><button class="quiet" data-arrest-rosc>ROSC</button><button class="quiet" data-arrest-end>End session</button></div><div class="arrest-rhythm"><label>Rhythm<select data-arrest-rhythm>${options(['VF / pulseless VT','PEA','Asystole','Torsades','Not set'],a.rhythm,'Choose rhythm')}</select></label><label class="check"><input type="checkbox" data-arrest-special ${a.special?'checked':''}>Special situation · manual review</label></div><div class="arrest-drug-row"><section><h3>Adrenaline</h3><p id="adrenalineDue" aria-live="off"></p><button class="arrest-stamp" data-arrest-stamp="adrenaline">+ Time given</button></section><section><h3>Amiodarone</h3><p id="amiodaroneDue" aria-live="off"></p><button class="arrest-stamp" data-arrest-stamp="amiodarone">+ Time given</button></section></div><div class="arrest-events-bar"><button data-arrest-stamp="shock">Shock delivered + time</button><button class="quiet" data-arrest-other>Other drug / action ↗</button><button class="quiet" data-arrest-undo>Undo last log</button></div><p class="arrest-note">Timestamps record the action only. Enter actual dose / energy using Edit. The 15-second charge cue is preparation only; shock only when indicated. Pausing the cycle does not pause medicine intervals.</p><div class="arrest-links">${ARREST_CONFIG.references.map(r=>`<button class="quiet" data-arrest-ref="${r.pdf}">${r.label} ↗</button>`).join('')}</div></section><aside class="arrest-side"><div class="arrest-weight-panel" id="arrestWeightPanel" hidden><h3>Reference doses · not an administration</h3><div class="grid"><label>Patient group<select data-arrest-group>${options(['Adult','Child'],a.group,'Choose group')}</select></label><label>Weight (kg)<input data-arrest-weight-value type="text" inputmode="decimal" placeholder="Measured / estimated" value="${esc(a.weight)}"></label><label>Prior shocks<input data-arrest-prior-shocks type="number" min="0" step="1" value="${a.priorShocks}"></label><label>Prior amiodarone doses<select data-arrest-prior-amio>${[0,1,2].map(n=>`<option ${a.priorAmiodarone===n?'selected':''}>${n}</option>`).join('')}</select></label></div><div id="arrestDoses"></div><p class="subtle">Child values use the 5/10/20/30/40 kg CPG tables. For weight over 40 kg, newborns or special situations, use the full CPG. Prior counts default to zero; confirm the history.</p><a href="${ARREST_CONFIG.source}" target="_blank" rel="noopener noreferrer">NZCPG EAS 3.14 ↗</a></div><section id="arrestPdfPanel" hidden><div class="rowhead"><h3 id="arrestPdfTitle">Checklist</h3><button class="quiet" data-arrest-close-ref>×</button></div><object id="arrestPdf" type="application/pdf" title="Arrest checklist"></object><a id="arrestPdfExternal" target="_blank" rel="noopener noreferrer">Open checklist separately ↗</a></section><section class="arrest-log"><h3>Event log</h3><div id="arrestLog"></div></section></aside></div><div class="arrest-bottom"><span>Draft in this tab · visual reminders · no device control.</span><button class="quiet" data-arrest-close>Return to notes</button></div></div>`;
- renderArrestDoses();renderArrestLog();updateArrestClock();
- if(arrestReference)showArrestReference(arrestReference,'Checklist');
+ $('arrestModal').innerHTML=`<div class="arrest-shell arrest-v2 ${a.sidebarOpen?'side-open':''}"><div class="arrest-header"><div class="arrest-weight-stack"><button class="arrest-weight-button" data-arrest-weight><span>Pt weight</span><b id="arrestWeightLabel">${esc(a.weight?a.weight+' kg':'Enter kg')}</b></button><span id="arrestWeightJoules" class="arrest-weight-joules"></span></div><div class="arrest-heading"><b>Cardiac arrest <small id="arrestMiniClock"></small></b><span>Standard non-traumatic CPG</span></div><div class="arrest-header-actions"><button class="quiet arrest-sidebar-arrow" data-arrest-sidebar aria-label="${a.sidebarOpen?'Close':'Open'} arrest sidebar" aria-expanded="${!!a.sidebarOpen}">${a.sidebarOpen?'›':'‹'}</button><button class="quiet" data-arrest-tab="checklists">Checklists</button><button class="quiet" data-arrest-close>Notes ↗</button></div></div><div class="arrest-status"><span id="arrestCycleLabel"></span><span id="arrestElapsed"></span><span id="arrestShockCount"></span><span id="arrestManualLabel"></span></div><div class="arrest-body arrest-body-v2"><main class="arrest-console"><section class="arrest-timer-zone"><div class="arrest-dial" id="arrestDial"><svg viewBox="0 0 220 220" aria-hidden="true"><circle class="dial-track" cx="110" cy="110" r="96"/><circle id="arrestArc" class="dial-progress" cx="110" cy="110" r="96"/><g class="arrest-dial-marks"><line x1="14" y1="110" x2="26" y2="110"/><text x="24" y="145">30s</text><line x1="42.1" y1="42.1" x2="51" y2="51"/><text x="52" y="43">15s</text></g></svg><div><strong id="arrestCountdown" role="timer" aria-label="Two minute cycle countdown">02:00</strong><span id="arrestPhase">Ready</span></div></div><div id="arrestCharge"></div><span id="arrestAlert" class="sr-only" role="status" aria-live="polite"></span><div class="arrest-timer-actions"><button data-arrest-start id="arrestStart">Start 2 minutes</button><button id="arrestRhythmCheck" class="quiet" data-arrest-rhythm-check>Rhythm check</button><button class="quiet" data-arrest-pause id="arrestPause">Pause cycle</button></div><p id="arrestCurrentRhythm" class="arrest-current-rhythm"></p><p id="arrestDefibReference" class="arrest-defib-reference"></p></section><div class="arrest-control-grid"><section class="arrest-control-card" id="arrestAdrenalineCard"><div class="arrest-card-title"><h3>Adrenaline</h3><button class="text-control" data-arrest-administration="adrenaline">Administration</button></div><div id="arrestAdrenalineDose" class="arrest-dose-reference"></div><strong id="adrenalineClock" class="arrest-medicine-clock"></strong><p id="adrenalineDue" class="arrest-drug-review"></p><button class="arrest-stamp" data-arrest-stamp="adrenaline">Time administered</button></section><section class="arrest-control-card" id="arrestAmiodaroneCard"><div class="arrest-card-title"><h3>Amiodarone</h3><button class="text-control" data-arrest-administration="amiodarone">Administration</button></div><div id="arrestAmiodaroneDose" class="arrest-dose-reference"></div><strong id="amiodaroneClock" class="arrest-medicine-clock"></strong><small class="arrest-clock-caption">Since dose</small><p id="amiodaroneDue" class="arrest-drug-review"></p><button class="arrest-stamp" data-arrest-stamp="amiodarone">Time administered</button></section><section class="arrest-control-card arrest-equipment-card"><h3>IV access</h3><div class="arrest-access-actions"><button class="quiet" data-arrest-intervention="iv">IV cannulation</button><button class="quiet" data-arrest-intervention="io">IO</button></div><p id="arrestAccessSummary" class="arrest-latest-entry"></p></section><section class="arrest-control-card arrest-equipment-card"><h3>Airway interventions</h3><div class="arrest-airway-actions">${[['opa','OPA'],['npa','NPA'],['igel','iGel'],['laryngoscopy','Laryngoscopy'],['intubation','Intubation']].map(([id,label])=>`<button class="quiet" data-arrest-intervention="${id}">${label}</button>`).join('')}</div><p id="arrestAirwaySummary" class="arrest-latest-entry"></p></section></div></main><aside class="arrest-sidebar" aria-label="Arrest sidebar" ${a.sidebarOpen?'':'hidden'}><nav class="arrest-side-tabs" aria-label="Arrest reference sections">${[['guidance','Guidance'],['log','Action log'],['guidelines','Guidelines'],['checklists','Checklists']].map(([id,label])=>`<button data-arrest-tab="${id}" aria-pressed="${a.sidebarTab===id}">${label}</button>`).join('')}</nav><div id="arrestSideContent" class="arrest-side-content"></div></aside></div><div class="arrest-bottom"><span>Reference ≠ given dose · Edit actuals in action log.</span><div><button class="quiet" data-arrest-other>Other drug / action</button><button class="quiet" data-arrest-end>End session</button></div></div></div>`;
+ renderArrestSide();renderArrestDoses();updateArrestClock();
 }
-function renderArrestDoses(){const a=state.arrest,r=arrestDoseReference(a.group,a.weight);$('arrestDoses').innerHTML=r?`<p><b>${r.label}</b></p><dl><dt>Defibrillation · VF/VT</dt><dd>${r.shock}</dd><dt>Adrenaline · 4-minute interval</dt><dd>${r.adrenaline}</dd><dt>Amiodarone · after 3 shocks, persistent VF/VT</dt><dd>${r.amiodarone1}</dd><dt>Second amiodarone · after 6 shocks</dt><dd>${r.amiodarone2}</dd></dl><p class="subtle">No amiodarone prompt for torsades. Special-cause regimens are not calculated here.</p>`:'<p>Enter a child weight up to 40 kg for a table reference. Other patients: use the full CPG.</p>';}
+function toggleArrestSidebar(force){
+ state.arrest.sidebarOpen=force===undefined?!state.arrest.sidebarOpen:force;
+ const open=state.arrest.sidebarOpen;document.querySelector('.arrest-v2')?.classList.toggle('side-open',open);const side=document.querySelector('.arrest-sidebar');if(side)side.hidden=!open;
+ const arrow=document.querySelector('[data-arrest-sidebar]');if(arrow){arrow.textContent=open?'›':'‹';arrow.setAttribute('aria-label',(open?'Close':'Open')+' arrest sidebar');arrow.setAttribute('aria-expanded',String(open));}
+}
+function openArrestTab(tab){state.arrest.sidebarTab=tab;toggleArrestSidebar(true);renderArrestSide();}
+function renderArrestSide(){
+ const a=state.arrest,root=$('arrestSideContent');if(!root)return;
+ document.querySelectorAll('[data-arrest-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.arrestTab===a.sidebarTab)));
+ if(a.sidebarTab==='log'){root.innerHTML='<div class="rowhead"><h3>Action log</h3><button class="quiet" data-arrest-undo>Undo last log</button></div><div id="arrestLog"></div>';renderArrestLog();return;}
+ if(a.sidebarTab==='checklists'){renderArrestChecklists();return;}
+ if(a.sidebarTab==='guidelines'){
+  const refs=a.sidebarTab==='checklists'?ARREST_CONFIG.references.slice(0,4):[{label:'Cardiac arrest CPG',pdf:'cpg-cardiac-arrest.pdf'},{label:'Adrenaline',pdf:'cpg-drugs/eas-14-3.pdf'},{label:'Amiodarone',pdf:'cpg-drugs/eas-14-4.pdf'},{label:'Paediatric equipment / doses',pdf:'cpg-paediatric-equipment.pdf'}];
+  root.innerHTML=`${arrestRsiGuidance()}<div class="arrest-reference-buttons">${refs.map(r=>`<button class="quiet" data-arrest-ref="${r.pdf}">${r.label}</button>`).join('')}</div><section id="arrestPdfPanel" ${arrestReference?'':'hidden'}><h3 id="arrestPdfTitle">${esc(a.referenceLabel||'Reference')}</h3><object id="arrestPdf" type="application/pdf" data="${esc(arrestReference)}" title="${esc(a.referenceLabel||'Reference')}"><p>Use the separate viewer if this device cannot display the PDF.</p></object><a id="arrestPdfExternal" href="${esc(arrestReference)}" target="_blank" rel="noopener noreferrer">Open separately ↗</a></section>`;return;
+ }
+ const title=a.guidanceTopic==='adrenaline'?'Adrenaline · administration':a.guidanceTopic==='amiodarone'?'Amiodarone · administration':'Arrest guidance';
+ const body=a.guidanceTopic==='adrenaline'?'<p>Cardiac arrest: adults and children whose weight has been rounded to 50 kg or more — administer undiluted as an IV bolus.</p><p>Children whose weight has been rounded to 40 kg or less — dilute 1 mg to a total of 10 ml using 0.9% sodium chloride. This is 1:10,000 (0.1 mg/ml). Draw up the dose from this solution and administer as an IV bolus.</p><p>Source: CPG EAS 14.3. Use the full CPG for other indications.</p>':a.guidanceTopic==='amiodarone'?'<p>Cardiac arrest: administer IV undiluted as a bolus.</p><p>Standard VF / pulseless VT: first dose after three shocks; second after six shocks. Withhold amiodarone for torsades. Reference doses are shown on the card; actual administration is recorded separately.</p><p>Source: CPG EAS 3.14 and 14.4.</p>':'<p>Two-minute cycle timer. The final 15-second charge cue is preparation only; shock only when indicated.</p><p>Rhythm check records Shock, No shock or ROSC, then the observed rhythm. Shock / no-shock confirmation starts the next timer; ROSC pauses it and offers the checklist.</p><p>Adrenaline review: four minutes from the last logged administration. Amiodarone reviews use VF/VT, shock count and prior doses. Special situations require manual review.</p>';
+ root.innerHTML=`<h3>${title}</h3>${body}<hr><h3>Context</h3><label class="check"><input type="checkbox" data-arrest-special ${a.special?'checked':''}>Special situation · manual review</label><label>Prior shocks<input data-arrest-prior-shocks type="number" min="0" max="100" step="1" value="${a.priorShocks}"></label><label>Prior amiodarone doses<select data-arrest-prior-amio>${[0,1,2].map(n=>`<option ${n===a.priorAmiodarone?'selected':''}>${n}</option>`).join('')}</select></label><p class="subtle">Prior counts default to zero. Confirm the history. Weight references use the 5/10/20/30/40 kg CPG bands. Age-based weights are estimates, not measurements.</p><button class="quiet" data-arrest-ref="cpg-paediatric-equipment.pdf">Paediatric dose reference</button>`;
+}
+function showArrestReference(pdf,label){
+ arrestReference=pdf;state.arrest.referenceLabel=label;const checklist=ARREST_CHECKLISTS.find(x=>x.pdf===pdf);if(checklist)state.arrest.checklist=checklist.id;const isChecklist=ARREST_CONFIG.references.slice(0,4).some(r=>r.pdf===pdf);openArrestTab(isChecklist?'checklists':'guidelines');
+}
+function renderArrestDoses(){
+ const a=state.arrest,r=currentArrestDoseReference(a),paed=a.group==='Child',basis=a.weight?`${a.weight} kg · ${a.weightSource?.startsWith('Estimated')?'estimated':'entered'}${paed?' · paediatric':''}`:'Weight not recorded';
+ for(const id of ['arrestAdrenalineCard','arrestAmiodaroneCard'])$(id)?.classList.toggle('paediatric-reference',paed&&!!a.weight);
+ if($('arrestAdrenalineDose'))$('arrestAdrenalineDose').innerHTML=`<small>${esc(basis)}</small>${r?`<b class="${paed?'paediatric-dose':''}">${r.adrenaline}</b><small>Reference · ${esc(r.label)}</small>`:`<span>${a.weight?'Confirm dosing reference':'Enter pt weight'}</span>`}`;
+ if($('arrestAmiodaroneDose'))$('arrestAmiodaroneDose').innerHTML=`<small>${esc(basis)}</small>${r?`<div><b class="${paed?'paediatric-dose':''}">1st ${r.amiodarone1}</b><b class="${paed?'paediatric-dose':''}">2nd ${r.amiodarone2}</b></div><small>Reference · ${esc(r.label)}</small>`:`<span>${a.weight?'Confirm dosing reference':'Enter pt weight'}</span>`}`;
+ arrestSetText('arrestWeightLabel',a.weight?a.weight+' kg':'Enter kg');arrestSetText('arrestWeightJoules',a.weight?arrestJoules(a.weight)+' J · 4 J/kg\nMax 200 J':'');arrestSetText('arrestDefibReference',a.weight?(a.group==='Child'?'4 J/kg calculation shown under weight':'Adult CPG: maximum device setting'):'');
+}
 function arrestSetText(id,value){const el=$(id);if(el&&el.textContent!==value)el.textContent=value;}
 function updateArrestClock(now=Date.now()){
  const a=state.arrest,t=arrestTiming(a,now),rem=arrestReminders(a,state.careEvents,now),arc=$('arrestArc');if(!arc)return;
- $('arrestCountdown').textContent=clockText(t.remainingMs);arrestSetText('arrestMiniClock',clockText(t.remainingMs));$('arrestPhase').textContent=a.phase==='Active'?(t.expired?'Rhythm check':a.deadline===null?'Cycle paused':'CPR cycle'):a.phase;
+ arrestSetText('arrestCountdown',clockText(t.remainingMs));arrestSetText('arrestMiniClock',clockText(t.remainingMs));arrestSetText('arrestPhase',a.phase==='Active'?(t.expired?'Rhythm check':a.deadline===null?'Paused':'CPR cycle'):a.phase);
  arc.style.strokeDasharray=String(2*Math.PI*96);arc.style.strokeDashoffset=String(2*Math.PI*96*(1-Math.min(1,t.remainingMs/ARREST_CONFIG.cycleMs)));$('arrestDial').classList.toggle('last-seconds',t.seconds<=15&&t.running);
- $('arrestCycleLabel').textContent='Cycle starts: '+a.cycles;$('arrestElapsed').textContent='Session elapsed '+clockText(t.elapsed);$('arrestShockCount').textContent='Shocks '+rem.shocks+' (prior '+a.priorShocks+')';
- arrestSetText('arrestCharge',t.charge?'CHARGE DEFIB':t.expired?'RHYTHM CHECK · CHANGE COMPRESSOR':a.phase==='Active'&&a.deadline!==null&&t.seconds<=15?'PREPARE RHYTHM CHECK':'');$('arrestCharge').classList.toggle('charge-flash',t.charge);
- $('arrestStart').textContent=a.cycles?'New 2-minute cycle':'Start 2 minutes';$('arrestPause').disabled=a.phase!=='Active'||t.expired;$('arrestPause').textContent=a.deadline===null?'Resume cycle':'Pause cycle';
- const adr=$('adrenalineDue'),ami=$('amiodaroneDue');adr.classList.toggle('drug-due',rem.adrenalineDue);ami.classList.toggle('drug-due',rem.amiodaroneDue);
- arrestSetText('adrenalineDue',!rem.enabled?'Arrest reminder inactive':rem.futureDrugTime?'Check future adrenaline timestamp':rem.adrenalineRemaining===null?'No dose timestamp · review CPG':rem.adrenalineDue?'REVIEW DOSE · due / overdue '+clockText(-rem.adrenalineRemaining):'Next review in '+clockText(rem.adrenalineRemaining));
- arrestSetText('amiodaroneDue',!rem.enabled?'Arrest reminder inactive':a.rhythm==='Torsades'?'Withhold amiodarone · see CPG':rem.amiodaroneDue?'REVIEW '+(rem.amiodaroneDoseNumber===1?'FIRST':'SECOND')+' DOSE · shock threshold reached':a.rhythm==='VF / pulseless VT'&&rem.amiodaroneCount>=2?'Two doses logged · further review is clinical':a.rhythm==='VF / pulseless VT'?'Review after '+(rem.amiodaroneCount?'6':'3')+' shocks · doses logged '+rem.amiodaroneCount:'VF/VT required · no dose prompt');
+ arrestSetText('arrestCycleLabel','Cycle '+a.cycles);arrestSetText('arrestElapsed','Elapsed '+clockText(t.elapsed));arrestSetText('arrestShockCount','Shocks '+rem.shocks);arrestSetText('arrestManualLabel',a.special?'Special / manual':'');
+ arrestSetText('arrestCharge',t.charge?'CHARGE DEFIB':t.expired?'RHYTHM CHECK':'');$('arrestCharge').classList.toggle('charge-flash',t.charge);
+ if($('arrestStart')){$('arrestStart').hidden=a.phase==='Active';$('arrestStart').textContent=a.cycles?'Start 2 minutes':'Start 2 minutes';}
+ if($('arrestRhythmCheck')){$('arrestRhythmCheck').classList.toggle('rhythm-due',t.expired);$('arrestRhythmCheck').textContent=t.expired?'Rhythm check · due':'Rhythm check';}
+ if($('arrestPause')){$('arrestPause').disabled=a.phase!=='Active'||t.expired;$('arrestPause').textContent=a.deadline===null?'Resume cycle':'Pause cycle';}
+ $('adrenalineDue')?.classList.toggle('drug-due',rem.adrenalineDue);$('amiodaroneDue')?.classList.toggle('drug-due',rem.amiodaroneDue);
+ renderArrestMedicineClocks(rem,now);
+ arrestSetText('adrenalineDue',!rem.enabled?'Reminder inactive':rem.futureDrugTime?'Check future timestamp':rem.adrenalineRemaining===null?'No dose timestamp':rem.adrenalineDue?'REVIEW DOSE · overdue':'Next review');
+ arrestSetText('amiodaroneDue',!rem.enabled?'Reminder inactive':a.rhythm==='Torsades'?'Withhold · torsades':rem.amiodaroneDue?'REVIEW '+(rem.amiodaroneDoseNumber===1?'FIRST':'SECOND')+' DOSE':arrestIsVfVt(a.rhythm)&&rem.amiodaroneCount>=2?'Two doses logged':arrestIsVfVt(a.rhythm)?'Review after '+(rem.amiodaroneCount?'6':'3')+' shocks':'VF/VT required · no prompt');
+ arrestSetText('arrestCurrentRhythm','Rhythm: '+a.rhythm);
+ for(const [id,types] of [['arrestAccessSummary',['iv','io']],['arrestAirwaySummary',['opa','npa','igel','laryngoscopy','intubation']]]){const last=arrestCaseEvents(a,state.careEvents).filter(e=>types.includes(e.arrestProcedure)).at(-1);arrestSetText(id,last?last.name+' · '+(last.arrestDetails?.size||'size not recorded'):'No entry');}
  arrestSetText('arrestAlert',[t.charge?'Charge defib':t.expired?'Rhythm check due':'',rem.adrenalineDue?'Review adrenaline dose':'',rem.amiodaroneDue?'Review amiodarone dose':''].filter(Boolean).join('. '));
 }
-function renderArrestLog(){const events=arrestCaseEvents(state.arrest,state.careEvents).map(e=>({e,index:state.careEvents.indexOf(e)})).sort((a,b)=>new Date(b.e.at)-new Date(a.e.at));$('arrestLog').innerHTML=events.length?events.map(({e,index})=>`<div class="arrest-log-row"><time>${esc(eventTime(e))}</time><strong>${esc(e.name)}</strong><span>${esc(e.kind==='drug'?drugDetails(e):e.details)}</span><button class="quiet" data-arrest-edit="${index}">Edit</button></div>`).join(''):'<p class="subtle">No actions logged.</p>';}
-function showArrestReference(pdf,label){arrestReference=pdf;$('arrestPdfPanel').hidden=false;$('arrestPdf').data=pdf;$('arrestPdf').title=label;$('arrestPdfTitle').textContent=label;$('arrestPdfExternal').href=pdf;if(window.innerWidth<=600)$('arrestPdfPanel').scrollIntoView({block:'start',behavior:'instant'});}
+function renderArrestLog(){
+ const root=$('arrestLog');if(!root)return;const events=arrestCaseEvents(state.arrest,state.careEvents).map(e=>({e,index:state.careEvents.indexOf(e)})).sort((a,b)=>new Date(b.e.at)-new Date(a.e.at));
+ root.innerHTML=events.length?events.map(({e,index})=>`<div class="arrest-log-row"><time>${esc(eventTime(e))}</time><strong>${esc(e.name)}</strong><span>${esc(e.kind==='drug'?drugDetails(e):e.details)}</span><button class="quiet" data-arrest-edit="${index}">Edit</button></div>`).join(''):'<p class="subtle">No actions logged.</p>';
+}
+function setArrestGauge(index){const size=ARREST_EQUIPMENT.iv.sizes[Number(index)];if(!size)return;const input=document.querySelector('#arrestInterventionForm [name="size"]');if(input)input.value=size;arrestSetText('ivGaugeReading',size+'G');}
+function saveArrestInterventionForm(){
+ const form=$('arrestInterventionForm'),data={confirmation:[]};new FormData(form).forEach((value,key)=>{if(key==='confirmation')data.confirmation.push(value);else data[key]=String(value).trim();});
+ const local=data.local;delete data.local;const result=recordArrestIntervention(arrestEntry.type,data,local,arrestEntry.index,local===arrestEntry.initialLocal?arrestEntry.initialAt:null);
+ if(result.errors){arrestEntryError(result.errors.join(' '));return;}arrestEntry=null;$('arrestEntryModal').close();renderArrestLog();updateArrestClock();render();
+}
 document.getElementById('arrestButton').addEventListener('click',openArrest);
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+document.addEventListener('click',e=>{
+ if(e.target.dataset.arrestSizeSlider!==undefined)setArrestSizeSlider(e.target.dataset.arrestSizeSlider,e.target.value);
+ if(e.target.dataset.arrestIvGauge!==undefined)setArrestGauge(e.target.value);
+ const b=e.target.closest('button');if(!b)return;
  if(b.dataset.arrestClose!==undefined){$('arrestModal').close();render();}
+ if(b.dataset.arrestSidebar!==undefined)toggleArrestSidebar();
+ if(b.dataset.arrestTab)openArrestTab(b.dataset.arrestTab);
  if(b.dataset.arrestStart!==undefined)startArrestCycle();
  if(b.dataset.arrestPause!==undefined)pauseArrestCycle();
- if(b.dataset.arrestRosc!==undefined)stopArrest('ROSC');
+ if(b.dataset.arrestRhythmCheck!==undefined)openArrestRhythmCheck();
  if(b.dataset.arrestEnd!==undefined)stopArrest('Ended');
  if(b.dataset.arrestStamp)arrestStamp(b.dataset.arrestStamp);
- if(b.dataset.arrestWeight!==undefined){$('arrestWeightPanel').hidden=!$('arrestWeightPanel').hidden;if(window.innerWidth<=600){if(!$('arrestWeightPanel').hidden)$('arrestWeightPanel').scrollIntoView({block:'start',behavior:'instant'});else document.querySelector('.arrest-body').scrollTop=0;}}
+ if(b.dataset.arrestWeight!==undefined)openArrestWeight();
+ if(b.dataset.arrestWeightKey!==undefined)enterArrestWeightKey(b.dataset.arrestWeightKey);
+ if(b.dataset.arrestEstimate!==undefined)useArrestAgeEstimate();
+ if(b.dataset.arrestWeightSave!==undefined){if(!commitArrestWeight())arrestEntryError('Enter weight above zero and no more than 500 kg.');else {$('arrestEntryModal').close();arrestEntry=null;renderArrestDoses();}}
+ if(b.dataset.arrestAdministration){state.arrest.guidanceTopic=b.dataset.arrestAdministration;openArrestTab('guidance');}
  if(b.dataset.arrestRef)showArrestReference(b.dataset.arrestRef,b.textContent.replace(' ↗',''));
- if(b.dataset.arrestCloseRef!==undefined){arrestReference='';$('arrestPdfPanel').hidden=true;}
+ if(b.dataset.arrestIntervention)openArrestIntervention(b.dataset.arrestIntervention);
+ if(b.dataset.arrestInterventionSave!==undefined)saveArrestInterventionForm();
+ if(b.dataset.arrestEntryCancel!==undefined){arrestEntry=null;$('arrestEntryModal').close();}
+ if(b.dataset.arrestChecklist) {state.arrest.checklist=b.dataset.arrestChecklist;renderArrestChecklists();}
+ if(b.dataset.arrestOutcome){arrestEntry.rhythm='';arrestEntry.other='';arrestEntry.outcome=b.dataset.arrestOutcome;arrestEntry.at=Date.now();renderArrestRhythmEntry();}
+ if(b.dataset.arrestOutcomeBack!==undefined){arrestEntry.outcome=null;renderArrestRhythmEntry();}
+ if(b.dataset.arrestRhythmSave!==undefined){const outcome=arrestEntry.outcome;if(!completeArrestRhythmCheck(arrestEntry))arrestEntryError('Choose the observed rhythm. Describe Other if selected.');else if(outcome==='ROSC')askPostRoscChecklist();else {arrestEntry=null;$('arrestEntryModal').close();}}
+ if(b.dataset.arrestPostrosc){$('arrestEntryModal').close();arrestEntry=null;if(b.dataset.arrestPostrosc==='yes')showArrestReference('cpg-post-rosc.pdf#page=2','Post ROSC checklist');}
  if(b.dataset.arrestUndo!==undefined){const last=state.careEvents.map((e,i)=>({e,i})).filter(x=>x.e.arrestId===state.arrest.id).at(-1);if(last){state.careEvents.splice(last.i,1);changed();renderArrestLog();render();updateArrestClock();}}
- if(b.dataset.arrestEdit!==undefined){const index=+b.dataset.arrestEdit;$('arrestModal').close();openCare(state.careEvents[index].kind,index);}
- if(b.dataset.arrestOther!==undefined){$('arrestModal').close();openCare('drug');}
+ if(b.dataset.arrestEdit!==undefined){const index=+b.dataset.arrestEdit,entry=state.careEvents[index];if(entry.arrestProcedure)openArrestIntervention(entry.arrestProcedure,index);else {$('arrestModal').close();openCare(entry.kind,index);}}
+ if(b.dataset.arrestOther!==undefined){ensureArrestId();$('arrestModal').close();openCare('drug');eventDraft.arrestId=state.arrest.id;eventDraft.arrestAction='arrest_other';}
 });
 document.addEventListener('change',e=>{const t=e.target,a=state.arrest;
- if(t.dataset.arrestRhythm!==undefined){a.rhythm=t.value;arrestStamp('rhythm');}
+ if(t.dataset.arrestChecklistItem!==undefined){toggleArrestChecklistItem(t.dataset.arrestChecklistItem,t.checked);renderArrestChecklists();renderArrestLog();render();}
+ if(t.name==='sizeUnit')changeArrestSizeUnit();
+ if(t.dataset.arrestWeightField==='group'&&arrestEntry?.kind==='weight'){arrestEntry.group=t.value;syncArrestWeightGroup();}
  if(t.dataset.arrestSpecial!==undefined)a.special=t.checked;
- if(t.dataset.arrestGroup!==undefined){a.group=t.value;renderArrestDoses();}
  if(t.dataset.arrestPriorAmio!==undefined)a.priorAmiodarone=Number(t.value);
  if(t.dataset.arrestPriorShocks!==undefined){const n=Number(t.value);if(Number.isInteger(n)&&n>=0&&n<=100)a.priorShocks=n;else t.value=a.priorShocks;}
+ if(t.dataset.arrestWeightField!==undefined&&arrestEntry?.kind==='weight'){arrestEntry[t.dataset.arrestWeightField]=t.value;if(t.dataset.arrestWeightField==='group')arrestEntry.adultDoseConfirmed=false;}
+ if(t.dataset.arrestWeightConfirm!==undefined&&arrestEntry?.kind==='weight')arrestEntry.adultDoseConfirmed=t.checked;
+ if(t.dataset.arrestCheckRhythm!==undefined&&arrestEntry?.kind==='rhythm')arrestEntry.rhythm=t.value;
  if($('arrestModal').open)updateArrestClock();
 });
-document.addEventListener('input',e=>{if(e.target.dataset.arrestWeightValue!==undefined){state.arrest.weight=e.target.value;renderArrestDoses();}});
+document.addEventListener('input',e=>{const t=e.target;
+ if(t.dataset.arrestWeightField!==undefined&&arrestEntry?.kind==='weight'){arrestEntry[t.dataset.arrestWeightField]=t.value;if(t.dataset.arrestWeightField==='weight'){arrestEntry.source='Entered';arrestEntry.adultDoseConfirmed=false;arrestSetText('weightEstimateLabel','Entered');autoArrestWeightGroup(arrestEntry);syncArrestWeightGroup();const c=document.querySelector('[data-arrest-weight-confirm]');if(c)c.checked=false;}}
+ if(t.dataset.arrestSizeSlider!==undefined)setArrestSizeSlider(t.dataset.arrestSizeSlider,t.value);
+ if(t.name==='size'&&t.type==='text')arrestSetText('arrestSizeReading',t.value||'Not recorded');
+ if(t.dataset.arrestIvGauge!==undefined)setArrestGauge(t.value);
+ if(t.dataset.arrestCheckOther!==undefined&&arrestEntry?.kind==='rhythm')arrestEntry.other=t.value;
+});
+document.addEventListener('focusin',e=>{if(arrestEntry?.kind==='weight'&&['weight','age'].includes(e.target.dataset.arrestWeightField))arrestEntry.padTarget=e.target.dataset.arrestWeightField;});
+document.addEventListener('submit',e=>{if(e.target.id==='arrestInterventionForm')e.preventDefault();});
+document.getElementById('arrestEntryModal').addEventListener('cancel',()=>{arrestEntry=null;});

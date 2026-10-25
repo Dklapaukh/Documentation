@@ -153,6 +153,7 @@ function saveCareEvent(keepOpen=false){
  const d=stampCare(eventDraft);if(!d){careError('Enter a valid action date and time.');return false;}
  if(!d.name.trim()){careError('Enter the drug or intervention performed.');return false;}
  if(d.kind==='drug'&&d.dose.trim()&&(!/^\d+(\.\d+)?$/.test(d.dose.trim())||Number(d.dose)<=0||!d.unit)){careError('Enter a positive actual dose and its unit, or leave dose blank if not recorded.');return false;}
+ if(d.arrestId&&d.kind==='drug')d.arrestAction=['adrenaline','amiodarone'].includes(d.name.trim().toLowerCase())?d.name.trim().toLowerCase():'arrest_other';
  const {index,repeatPanel,repeatChoiceIndex,repeatContext,repeatMinutes,...record}=d;if(keepOpen){record.procedure=procedureDraft.procedure;record.referenceWeight=procedureDraft.weight;record.referenceAge=procedureDraft.age;record.patientGroup=procedureDraft.category;}
  if(index===null)state.careEvents.push(record);else state.careEvents[index]=record;delete pendingCare[currentCareKey()];changed();render();updateRepeatNotifications();
  if(!keepOpen){delete pendingCare[currentCareKey()];$('careModal').close();eventDraft=null;return true;}

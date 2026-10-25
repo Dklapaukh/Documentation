@@ -7,7 +7,7 @@ const assets=fs.existsSync(path.join(__dirname,'../dist/index.html'))?path.join(
 const elements={};function element(){const c=new Set();return {innerHTML:'',dataset:{},textContent:'',value:'',style:{},scrollTop:0,hidden:true,open:false,setAttribute(){},focus(){},querySelectorAll:()=>[],querySelector:()=>null,addEventListener(){},showModal(){this.open=true;},show(){this.open=true;},close(){this.open=false;},classList:{add:x=>c.add(x),remove:x=>c.delete(x),contains:x=>c.has(x),toggle(x,on){if(on===undefined)on=!c.has(x);on?c.add(x):c.delete(x);return on;}}};}
 const document={getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:()=>[],querySelector:()=>null,addEventListener(){}};
 const context=vm.createContext({document,window:{addEventListener(){},scrollTo(){}},console,requestAnimationFrame(){},setInterval:()=>1});
-for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
+for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','arrest-entry.js','arrest-checklists.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
 const run=code=>vm.runInContext(code,context);let checks=0;function check(ok,msg){assert(ok,msg);checks++;}
 run('state=emptyState();step=0;render()');let html=elements.content.innerHTML;
 check(!html.includes('Medical history / medication / allergies'),'background removed');check(html.includes('Presenting complaint'),'complaint retained');

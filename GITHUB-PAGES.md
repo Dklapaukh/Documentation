@@ -6,7 +6,7 @@ No installation, build command, API key or server is required.
 
 1. Download and unzip the GitHub source ZIP.
 2. On GitHub, create a repository (or open the repository you want to use).
-3. Select **Add file → Upload files**. Drag the extracted files into the upload area, then select **Commit changes**. Upload the extracted contents, not the ZIP or an enclosing folder. Keep the `tour` and `cpg-drugs` subfolders intact beside `index.html`. `index.html`, `styles.css`, `app.js`, `config.js`, `tour.js`, `clinical-data.js`, `care.js`, `ink.js`, `arrest.js`, `drug-guidance.js`, `drug-guidance-data.js`, `drug-guidance-content.js`, `ink-model.bin`, the model attribution files and all PDF files must sit together at the top level of the repository. Include `.nojekyll` if visible; this plain HTML app also works without it.
+3. Select **Add file → Upload files**. Drag the extracted files into the upload area, then select **Commit changes**. Upload the extracted contents, not the ZIP or an enclosing folder. Keep the `tour` and `cpg-drugs` subfolders intact beside `index.html`. `index.html`, `styles.css`, `app.js`, `config.js`, `tour.js`, `clinical-data.js`, `care.js`, `ink.js`, `arrest.js`, `arrest-entry.js`, `arrest-checklists.js`, `drug-guidance.js`, `drug-guidance-data.js`, `drug-guidance-content.js`, `ink-model.bin`, the model attribution files and all PDF files must sit together at the top level of the repository. Include `.nojekyll` if visible; this plain HTML app also works without it.
 4. Open **Settings → Pages**.
 5. Under **Build and deployment**, choose **Deploy from a branch**.
 6. Select your upload branch (usually **main**) and **/(root)**. Select **Save**.
@@ -36,6 +36,6 @@ GitHub reference: https://docs.github.com/en/pages/getting-started-with-github-p
 
 ## Optional verification
 
-With Node.js installed, run `node tests/clinical-guidance.cjs` and `node tests/pe-reminder.cjs`, plus `node tests/care.cjs` and `node tests/poc.cjs`, then `node tests/drug-guidance.cjs` and `node tests/simplified-ui.cjs`, plus `node tests/drug-entry.cjs` from the extracted folder. It requires no dependencies and uses only synthetic state. Keep the `tests` folder for future local configuration checks; it is not required to run the website.
+With Node.js installed, run `node tests/clinical-guidance.cjs` and `node tests/pe-reminder.cjs`, plus `node tests/care.cjs` and `node tests/poc.cjs`, then `node tests/drug-guidance.cjs` and `node tests/simplified-ui.cjs`, plus `node tests/drug-entry.cjs` and `node tests/arrest-workflow.cjs` from the extracted folder. It requires no dependencies and uses only synthetic state. Keep the `tests` folder for future local configuration checks; it is not required to run the website.
 
 The handwriting model is fetched from the same static site. Upload the binary unchanged; no external handwriting service, build step or Python installation is needed. Python is only optional for retraining the model using the included tools script.

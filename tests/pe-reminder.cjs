@@ -6,7 +6,7 @@ const assets=fs.existsSync(path.join(__dirname,'../dist/index.html'))?path.join(
 const elements={};function element(){return {innerHTML:'',dataset:{},textContent:'',value:'',style:{},scrollTop:0,hidden:true,addEventListener(){},setAttribute(){},focus(){},querySelectorAll:()=>[],classList:{add(){},remove(){},contains:()=>false}};}
 const document={getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:()=>[],querySelector:()=>element(),addEventListener(){}};
 const context=vm.createContext({document,window:{addEventListener(){},scrollTo(){}},console,requestAnimationFrame(){},setInterval:()=>1});
-for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
+for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','arrest-entry.js','arrest-checklists.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
 const run=code=>vm.runInContext(code,context);let checks=0;
 function check(condition,message){assert(condition,message);checks++;}
 function assessment(subjective='',objective=''){run(`state=emptyState();state.fields.subjective=${JSON.stringify(subjective)};state.fields.objective=${JSON.stringify(objective)}`);}

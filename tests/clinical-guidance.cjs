@@ -8,7 +8,7 @@ const elements={};
 function element(){const classes=new Set();return {innerHTML:'',dataset:{},textContent:'',value:'',style:{},scrollTop:0,hidden:true,addEventListener(){},setAttribute(){},focus(){},querySelectorAll:()=>[],classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)}};}
 const document={getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:()=>[],querySelector:()=>null,addEventListener(){}};
 const context=vm.createContext({document,window:{addEventListener(){},scrollTo(){}},console,requestAnimationFrame(){},setInterval:()=>1});
-for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assetRoot,file),'utf8'),context);
+for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','arrest-entry.js','arrest-checklists.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assetRoot,file),'utf8'),context);
 const run=code=>vm.runInContext(code,context);
 let checks=0;function check(condition,message){assert(condition,message);checks++;}
 check(run('Object.values(state.fallsAssessment).every(x=>x==="Not assessed")'),'default states');
