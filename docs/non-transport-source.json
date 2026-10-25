@@ -1,0 +1,14 @@
+{
+  "url": "https://cpg.stjohn.org.nz/tabs/checklists/page/non-transport-pause-and-checklist",
+  "intro": "If a patient is being given a recommendation by ambulance personnel that transport to a medical facility by ambulance is not required, the crew must pause briefly to go through the non-transport checklist (below) and agree that non-transport is the right decision. If consensus is unable to be easily achieved, personnel should have a low threshold for recommending the patient is transported.",
+  "instruction": "The following non-transport checklist must be completed prior to leaving the scene:",
+  "items": [
+    "The patient has been fully assessed including a set of vital signs and appropriate investigations.",
+    "There are no unexplained abnormal vital signs.",
+    "Serious illness or injury has been reasonably excluded.",
+    "No red flags requiring transport to ED are present.",
+    "The patient is seen to mobilise safely (when able to normally do so), noting that if the patient is unable to mobilise there must be a minor or long-standing condition preventing this.",
+    "The patient and/or caregivers have been given a verbal and written explanation of when to seek further help or advice."
+  ],
+  "checked": "2026-10-25"
+}

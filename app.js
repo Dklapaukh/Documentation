@@ -148,14 +148,14 @@ function render(){
  $('navigation').innerHTML=sections.map((s,i)=>`<button data-step="${i}" class="${step===i?'active':''}" ${step===i?'aria-current="page"':''}><span class="section-number">0${i+1}</span>${s}</button>`).join('');
  $('back').disabled=step===0;$('next').disabled=step===5;
  let html='';
- if(step===0)html=card('History',text('hpc','History of presenting complaint')+`<div id="historyCpg">${cpgSuggestions(v('hpc'))}</div><div class="grid">${select('source','Source',CONFIG.historySources)}${text('sourceDetails','Limitations / source details',{short:true})}</div><details><summary>OPQRST</summary><div class="grid">${text('onset','Onset / last known well',{short:true})}${text('provocation','Provoking / relieving',{short:true})}${text('quality','Quality',{short:true})}${text('radiation','Location / radiation',{short:true})}${text('severity','Severity / function',{short:true})}${text('timing','Timing',{short:true})}</div></details>`,'History of Incident')+card('Background',text('background','Medical history / medication / allergies'))+card('Rockwood frailty',scale())+card('Social history',checks(LOCAL.social,state.social,'social')+text('socialDetails','Details'));
+ if(step===0)html=card('History',text('presentingComplaint','Presenting complaint',{short:true})+text('hpc','History of presenting complaint')+`<div id="historyCpg">${cpgSuggestions(v('hpc'))}</div>`,'History of Incident')+card('Social history',`<div class="social-history-columns">${checks(LOCAL.social,state.social,'social')}${text('socialDetails','Details')}</div>`)+card('Rockwood frailty',scale());
  if(step===1)html=`<div class="assessment">${assessment('SUBJECTIVE')}${assessment('OBJECTIVE')}</div><div id="peReminderNotice" role="status">${peReminderLauncher()}</div>`;
  if(step===2)html=card('Provisional diagnosis',select('diagnosis','Diagnosis',DIAGNOSIS.options)+(v('diagnosis')==='Other'?text('diagnosisOther','Other diagnosis',{short:true,required:true}):'')+text('diagnosisReason','Clinical reasoning',{placeholder:'Supporting evidence / uncertainty',required:true})+`<div id="diagnosisCpg">${v('diagnosis')==='Other'?cpgSuggestions(v('diagnosisOther')):''}</div>`+diagnosisLauncher(),'Clinical Impression')+card('Guideline Used',select('guidelineUsed','Guideline Used',Object.keys(GUIDELINES_USED)))+card('Differential diagnoses',`<div id="peReminderNotice" role="status">${peReminderLauncher()}</div>`+state.differentials.map(differentialRow).join('')+'<button class="quiet" id="addDiff">+ Differential</button>')+card('Pathway / research assessment',checks(LOCAL.pathways,state.pathways,'pathways')+(state.pathways.length?text('pathwayDetails','Findings / scores'):''));
  if(step===3)html=careScreen();
  if(step===4){
-  html=card('Treatment',text('treatment','Intervention / rationale')+text('response','Response / reassessment')+text('enroute','En route'))+card('Disposition',dispositionGuidanceSelect()+select('disposition','Outcome',CONFIG.dispositions)+text('handover','Handover / onward plan')+`<label class="check"><input id="casCall" type="checkbox" ${state.casCall?'checked':''}>CAS Call</label>`,'Disposition Tab - Screen 1');
+  html=card('Treatment',text('treatment','Treatment and en route',{placeholder:'Treatment, response, reassessment and events en route…'}))+card('Disposition',select('disposition','Outcome',CONFIG.dispositions),'Disposition Tab - Screen 1');
   if(isNonTransport())html+=card('Non-transport',text('nontransportReason','Rationale')+text('capacity','Capacity / understanding')+(v('disposition')==='Declined recommended transport'?text('refusal','Refusal discussion'):'')+text('safety','Safety-netting')+text('followup','Follow-up / supports')+`<div class="grid">${select('competency','Competency checklist',['Completed','Not completed','Not applicable'])}${select('acs','ACS / signatures',['Completed','Not completed','Not applicable'])}</div>`,'Non-transporting');
-  html+=card('Referrals made',referralPrompt()+checks(LOCAL.referrals,state.referrals,'referrals')+(state.referrals.length?''+text('referralDetails','Referral details'):''));
+  html+=card('Request referrals',referralPrompt()+checks(LOCAL.referrals,state.referrals,'referrals')+(state.referrals.length?''+text('referralDetails','Referral details'):''));
  }
  if(step===5){
   const missing=reasoningErrors();
@@ -184,13 +184,13 @@ function buildNotes(){
  const source=join([v('source'),v('sourceDetails')],' — ');
  const frailty=state.frailty===null?'':`Rockwood CFS ${state.frailty} — ${LOCAL.frailty[state.frailty-1][0]}.`;
  const social=join([state.social.map(id=>LOCAL.social.find(x=>x.id===id)?.label).filter(Boolean).join('; '),v('socialDetails')],'. ');
- const history=join([line('History source',source),v('hpc').trim(),...['onset','provocation','quality','radiation','severity','timing'].map((k,i)=>line(['Onset / last known well','Provoking / relieving','Quality','Location / radiation','Severity / function','Timing'][i],v(k))),line('Background',v('background')),frailty,line('Social history',social),v('subjective').trim()],'\n\n');
+ const history=join([line('Presenting complaint',v('presentingComplaint')),line('History source',source),v('hpc').trim(),...['onset','provocation','quality','radiation','severity','timing'].map((k,i)=>line(['Onset / last known well','Provoking / relieving','Quality','Location / radiation','Severity / function','Timing'][i],v(k))),line('Background',v('background')),frailty,line('Social history',social),v('subjective').trim()],'\n\n');
  const flags=Object.entries(state.flags).filter(([,s])=>s).map(([id,s])=>{const [c,i]=id.split('|'),g=LOCAL.cpgs.find(x=>x.id===c);return `${g.title} — ${g.prompts[+i]}: ${s.toLowerCase()}.`;});
  const diagnosis=join([diagnosisName()?`Provisional diagnosis: ${diagnosisName()}`:'',v('diagnosisReason').trim()]);
  const differential=state.differentials.filter(d=>d.diagnosis.trim()||d.reasoning.trim()).map(d=>`• ${d.diagnosis.trim()||'Diagnosis not recorded'}${d.reasoning.trim()?` — ${d.reasoning.trim()}`:' — reasoning not recorded'}`).join('\n');
  const impression=join([v('objective').trim(),state.vitalSets.length?'Vitals\n'+vitalsNote():'',diagnosis,line('Guideline used',v('guidelineUsed')),differential?'Differentials\n'+differential:'',flags.length?'CPG documentation\n'+flags.join('\n'):'',fallsNote(),confirmedFallsAssessmentNote(),state.pathways.length?'Pathway assessments: '+state.pathways.join(', ')+ (v('pathwayDetails').trim()?'\n'+v('pathwayDetails').trim():''):''],'\n\n');
  const referrals=state.referrals.map(id=>{const r=LOCAL.referrals.find(x=>x.id===id);return `${r.label} ${r.tag}`;}).join('; ');
- const disposition=join([treatmentNote(),state.careEvents.length?'Vitals & Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals made: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
+ const disposition=join([treatmentNote(),state.careEvents.length?'Vitals & Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment and en route',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals requested: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
  return {'History of Incident':history,'Clinical Impression':impression,'Disposition':disposition};
 }
 function outputNotes(){return {...buildNotes(),...state.edits};}
@@ -239,7 +239,7 @@ document.addEventListener('change',e=>{
  const t=e.target;
  if(t.id==='confirmFallsAssessment'){state.fallsAssessmentConfirmed=t.checked;changed();return;}
  if(t.dataset.check){const key=t.dataset.check,id=t.value;if(t.checked){state[key].push(id);if(key==='social'){const item=LOCAL.social.find(x=>x.id===id);if(item?.group)state.social=state.social.filter(x=>x===id||LOCAL.social.find(a=>a.id===x)?.group!==item.group);if(id==='independent_adls')state.social=state.social.filter(x=>x!=='help_with_adls');if(id==='help_with_adls')state.social=state.social.filter(x=>x!=='independent_adls');}}else state[key]=state[key].filter(x=>x!==id);changed();render();}
- if(['disposition','diagnosis','dispositionGuidance','guidelineUsed'].includes(t.dataset.field)){if(t.dataset.field==='diagnosis')state.fields.dispositionGuidance='';render();if(t.dataset.field!=='disposition'&&diagnosisPanels())openReference('clinical');}
+ if(['disposition','diagnosis','dispositionGuidance','guidelineUsed'].includes(t.dataset.field)){if(t.dataset.field==='diagnosis')state.fields.dispositionGuidance='';render();if(t.dataset.field==='disposition'&&isNonTransport())openNonTransportChecklist();else if(t.dataset.field!=='disposition'&&diagnosisPanels())openReference('clinical');}
  if(t.dataset.guidanceMode&&t.value){showHelp(t.dataset.guidanceMode+'|'+t.value);t.value='';}
 });
 document.addEventListener('click',e=>{
@@ -285,6 +285,7 @@ $('back').onclick=()=>navigate(Math.max(0,step-1));$('next').onclick=()=>navigat
 // References occupy their own layout track. They never trap focus or cover the editor.
 function openReference(pane){
  referencePane=pane;
+ $('nonTransportPane').hidden=pane!=='nontransport';
  $('referenceDock').hidden=false;$('appShell').classList.add('has-reference');
  $('guidancePane').hidden=pane!=='guidance';$('pdfPane').hidden=pane!=='pdf';$('diagnosisPane').hidden=pane!=='clinical';$('explainPane').hidden=pane!=='explain';
  $('showGuidance').setAttribute('aria-pressed',String(pane==='guidance'));$('showClinical').setAttribute('aria-pressed',String(pane==='clinical'));$('showExplain').setAttribute('aria-pressed',String(pane==='explain'));
@@ -297,7 +298,7 @@ function openDocument(url,title){
 }
 function closeReference(){ referencePane='';$('referenceDock').hidden=true;$('appShell').classList.remove('has-reference'); }
 $('closeReference').onclick=closeReference;$('showClinical').onclick=()=>{renderClinicalPane();openReference('clinical');};$('showExplain').onclick=showTour;$('showGuidance').onclick=()=>{if(!$('helpResults').innerHTML)searchHelp();openReference('guidance');};$('showReferencePdf').onclick=()=>openReference('pdf');
-$('reset').onclick=()=>{if(confirm('Clear draft?')){clearCareDrafts();state=emptyState();learningEmailRequested=false;navigate(0);toast('Cleared');}};
+$('reset').onclick=()=>{if(confirm('Clear draft?')){clearCareDrafts();nonTransportChecks=[];$('nonTransportPane').innerHTML='';state=emptyState();learningEmailRequested=false;navigate(0);toast('Cleared');}};
 window.addEventListener('beforeunload',e=>{if(Object.values(outputNotes()).some(Boolean)||hasUnsavedCare()){e.preventDefault();e.returnValue='';}});
 render();
 

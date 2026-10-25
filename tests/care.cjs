@@ -3,10 +3,10 @@
  */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const assets=fs.existsSync(path.join(__dirname,'../dist/index.html'))?path.join(__dirname,'../dist'):path.join(__dirname,'..');
-const elements={};function element(){return {innerHTML:'',textContent:'',value:'',style:{},scrollTop:0,hidden:true,open:false,setAttribute(){},focus(){},querySelectorAll:()=>[],querySelector:()=>element(),addEventListener(){},showModal(){this.open=true;},close(){this.open=false;},classList:{add(){},remove(){},contains:()=>false}};}
+const elements={};function element(){return {innerHTML:'',dataset:{},textContent:'',value:'',style:{},scrollTop:0,hidden:true,open:false,setAttribute(){},focus(){},querySelectorAll:()=>[],querySelector:()=>element(),addEventListener(){},showModal(){this.open=true;},close(){this.open=false;},classList:{add(){},remove(){},contains:()=>false}};}
 const document={getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:()=>[],querySelector:()=>element(),addEventListener(){}};
-const context=vm.createContext({document,window:{addEventListener(){},scrollTo(){}},console,requestAnimationFrame(){}});
-for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
+const context=vm.createContext({document,window:{addEventListener(){},scrollTo(){}},console,requestAnimationFrame(){},setInterval:()=>1});
+for(const file of ['config.js','tour.js','clinical-data.js','ink.js','arrest.js','drug-guidance-data.js','drug-guidance-content.js','drug-guidance.js','care.js','app.js'])vm.runInContext(fs.readFileSync(path.join(assets,file),'utf8'),context);
 const run=code=>vm.runInContext(code,context);let checks=0;
 function check(ok,message){assert(ok,message);checks++;}
 const normal={values:{rr:'16',spo2:'98',hr:'80',sbp:'120',dbp:'80',temp:'37',bgl:'5'},gcs:{eye:4,verbal:5,motor:6},oxygen:'Air',consciousness:'Alert',scale:'1',scale2Confirmed:false,eligibility:'Adult ≥16, not pregnant'};
