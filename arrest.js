@@ -51,8 +51,8 @@ function stopArrest(phase,now=Date.now()){
  const a=state.arrest;a.remainingMs=arrestTiming(a,now).remainingMs;a.deadline=null;a.phase=phase;a.endedAt=now;arrestStamp(phase==='ROSC'?'rosc':'ended',now);updateArrestClock();
 }
 function openArrest(){
- if($('careModal').open)stashCareDraft();if($('wheelModal').open)$('wheelModal').close();renderArrest();$('arrestModal').showModal();
- if(arrestInterval===null)arrestInterval=setInterval(()=>{if(typeof state==='undefined')return;if($('arrestModal').open)updateArrestClock();const badge=$('arrestBadge');if(badge)badge.textContent=state.arrest.phase==='Active'?clockText(arrestTiming(state.arrest).remainingMs):'';const attention=arrestReminders(state.arrest,state.careEvents);$('arrestButton').classList.toggle('arrest-attention',state.arrest.phase==='Active'&&(arrestTiming(state.arrest).expired||attention.adrenalineDue||attention.amiodaroneDue));},250);
+ if($('careModal').open)stashCareDraft();if($('wheelModal').open)$('wheelModal').close();
+ openPocketArrest();
 }
 
 // The console is fixed to the viewport; only the contextual sidebar scrolls.
