@@ -63,7 +63,7 @@ function drugSectionMarkup(ref){
  return sorted.map(section=>`<details class="drug-guideline-section ${priority(section.title)===0?'contraindications':priority(section.title)===1?'dose-reference':''}" ${priority(section.title)<2?'open':''}><summary>${esc(/^dosage$/i.test(section.title)?'Dose':section.title)}</summary><div>${section.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}</div></details>`).join('');
 }
 function updateDrugGuidance(force=false){
- if(careView!=='drug'||!$('drugGuidanceContent'))return;
+ if(!['drug','procedure'].includes(careView)||eventDraft?.kind!=='drug'||!$('drugGuidanceContent'))return;
  const root=$('drugGuidanceContent'),raw=eventDraft.name.trim(),name=drugReferenceName(raw);
  const shell=document.querySelector('.drug-entry-shell'),aside=document.querySelector('.drug-reference');
  const selected=!!name&&eventDraft.drugSelected!==false;shell?.classList.toggle('has-drug-reference',selected);if(aside)aside.hidden=!selected;

@@ -15,8 +15,8 @@ diagnosisPanels=function(){return selectedGuidelinePanels();};
 // Only the requested guidance functions are exposed. Preserve ordinary free text.
 peReminderMatches=function(){return false;};peReminderPanel=function(){return '';};peReminderLauncher=function(){return '';};
 matchingCpgs=function(text){return LOCAL.cpgs.filter(c=>c.id==='cardiac'&&c.words.some(w=>new RegExp('(^|[^a-z])'+w+'([^a-z]|$)','i').test(text)));};
-// Administration entry stays functional; the full medicine reference is source-only.
-updateDrugGuidance=function(){if(careView==='drug')showRecordedEntries();};
+// Medicine selection uses the shared contextual reference viewer in care-layout.
+// Keep the general guideline picker restricted to the three v16 interfaces.
 // Non-transport documentation fields stay available without the extra CPG checklist.
 openNonTransportChecklist=function(){renderClinicalPane();if(selectedGuidelines().length)openReference('clinical');};
 function openCompactGuidance(){renderClinicalPane();if(selectedGuidelines().length){openReference('clinical');return;}const pane=$('diagnosisPane');pane.innerHTML='<h2>Clinical guidance</h2>'+PRODUCTION_GUIDELINES.map(n=>`<button class="quiet reference-link" data-compact-guidance="${n}">${n}</button>`).join('');openReference('clinical');}

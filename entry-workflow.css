@@ -202,3 +202,14 @@ body.notes-reference-expanded #careModal { display:none; }
  body.notes-reference-open #careModal:not(.inline-care-editor) { top:calc(var(--entry-header-height,var(--header-height)) + 32dvh); right:0; width:100%; height:calc(68dvh - var(--entry-header-height,var(--header-height))); }
 }
 [data-picker-sidebar]{min-width:40px;font-size:25px;line-height:1;padding:4px 8px}
+
+/* Notes workspace: lighter paper and a compact, growing entry-notes line.
+ * Scoped to Notes; the cardiac-arrest frame retains its own palette. */
+:root { --bg:#f6f6f3; --notes-guidance-bg:#f2f3ee; }
+.reference-dock,.search-field,.library-search,.cpg-search-tools,
+#drugPane .drug-reference { background:var(--notes-guidance-bg); }
+.reference-dock #expandReference,.reference-dock #closeReference { background:var(--notes-guidance-bg); }
+#inlineCareHost .event-entry textarea,
+#inlineCareHost .native-iv-entry textarea { min-height:40px; height:40px; padding:8px 10px; line-height:1.5; overflow-y:hidden; }
+/* Keep the medicine title clear of the top-corner sidebar arrows. */
+#drugPane .drug-cpg>h3 { padding-inline:18px; }

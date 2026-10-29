@@ -35,22 +35,26 @@ function positionCareEditor(kind){
  else{document.body.append(modal);modal.classList.remove('inline-care-editor');if(host)host.hidden=true;}
 }
 const careLayoutOpen=openCare;
-openCare=function(kind,index=null){if($('careModal').open)stashCareDraft();if($('notesEquipmentModal')?.open){$('notesEquipmentModal').close();notesEquipmentActive=false;notesEquipmentRequest=null;}positionCareEditor(kind);careLayoutOpen(kind,index);if(inlineCareEntry&&kind!=='drug')showRecordedEntries();};
+openCare=function(kind,index=null){if($('careModal').open)stashCareDraft();if($('notesEquipmentModal')?.open){$('notesEquipmentModal').close();notesEquipmentActive=false;notesEquipmentRequest=null;}positionCareEditor(kind);careLayoutOpen(kind,index);if(inlineCareEntry&&kind!=='drug'&&!(kind==='procedure'&&eventDraft.kind==='drug'&&eventDraft.drugSelected!==false&&drugReferenceName(eventDraft.name)))showRecordedEntries();};
 const careLayoutRenderCare=renderCare;
 renderCare=function(keepScroll=false){
  positionCareEditor(careView);careLayoutRenderCare(keepScroll);
  if(!inlineCareEntry)return;
  const shell=$('careModal').querySelector('.care-modal-shell'),bottom=shell.querySelector('.care-modal-bottom'),body=shell.querySelector('.care-modal-body');
  if(bottom){bottom.className='inline-record-actions';body.append(bottom);}
+ $('careModal').querySelectorAll('textarea[data-care-field="details"]').forEach(resizeCareNotes);
 };
+// Start at one line, then grow only to fit entered notes. Never trim the draft.
+function resizeCareNotes(field){field.rows=1;field.style.height='auto';field.style.height=Math.max(40,field.scrollHeight+2)+'px';}
+document.addEventListener('input',e=>{if(e.target.matches?.('#careModal textarea[data-care-field="details"]'))resizeCareNotes(e.target);});
 careTimeEditor=function(d){return `<div class="care-time"><label>Time<input type="datetime-local" data-care-time value="${esc(d.local||localDateTime(new Date(d.at)))}" aria-label="Action date and time"></label><button class="quiet" data-care-now>Now</button></div>`;};
 // inputmode requests the device's native decimal keypad, without a custom pad.
 dosePadMarkup=function(){return `<label class="native-dose">Dose<input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-care-field="dose" value="${esc(eventDraft.dose||'')}" placeholder="Actual dose"></label>`;};
 drugSidebar=function(){return `<section class="inline-drug-work">${eventEntryMarkup()}</section>`;};
 const careLayoutDrugGuidance=updateDrugGuidance;
 updateDrugGuidance=function(force=false){
- if(careView!=='drug')return;
- const selected=!!drugReferenceName(eventDraft?.name)&&eventDraft.drugSelected!==false;
+ if(!['drug','procedure'].includes(careView))return;
+ const selected=eventDraft?.kind==='drug'&&!!drugReferenceName(eventDraft.name)&&eventDraft.drugSelected!==false;
  if(selected){careLayoutDrugGuidance(force);openReference('drug');}else{if($('drugGuidanceContent'))$('drugGuidanceContent').innerHTML='';showRecordedEntries();}
 };
 const careLayoutRender=render;

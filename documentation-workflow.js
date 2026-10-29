@@ -30,7 +30,7 @@ const DRUG_ENTRY_DEFAULTS={
 function clearDrugForNameChange(next){if(careView!=='drug'||next===eventDraft.name)return;for(const key of ['dose','route','unit']){eventDraft[key]='';const input=document.querySelector('[data-care-field="'+key+'"]');if(input)input.value='';}}
 function applyDrugDefaults(){const defaults=DRUG_ENTRY_DEFAULTS[drugReferenceName(eventDraft.name)];eventDraft.route=defaults?.[0]||'';eventDraft.unit=defaults?.[1]||'';for(const key of ['route','unit']){const input=document.querySelector('[data-care-field="'+key+'"]');if(input)input.value=eventDraft[key];}}
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.guidelineChoice){state.guidelinePickerOpen=true;const name=t.dataset.guidelineChoice;state.guidelines=selectedGuidelines().filter(x=>x!==name);if(t.checked)state.guidelines.push(name);state.fields.guidelineUsed='';if(t.checked)state.activeGuideline=name;else if(state.activeGuideline===name)state.activeGuideline=state.guidelines[0]||'';changed();render();if(t.checked)openReference('clinical');}
- if(t.dataset.careField==='name'&&careView==='drug'&&drugReferenceName(t.value)){eventDraft.drugSelected=true;applyDrugDefaults();updateDrugGuidance(true);updateRepeatControl();}
+ if(t.dataset.careField==='name'&&['drug','procedure'].includes(careView)&&eventDraft.kind==='drug'&&drugReferenceName(t.value)){eventDraft.drugSelected=true;applyDrugDefaults();updateDrugGuidance(true);updateRepeatControl();}
 });
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.id==='toggleGuidance'){if(referencePane)closeReference();else if(selectedGuidelines().length){renderClinicalPane();openReference('clinical');}else{searchHelp();openReference('guidance');}}

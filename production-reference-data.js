@@ -1,4 +1,3 @@
-/* Full reference documents are retained in dist/ and docs/ in source only.
- * These empty adapters keep the existing care form independent of those files. */
-const DRUG_GUIDELINE_CONTENT={};
+/* General reference documents/catalogue remain source-only. Medicine extracts
+ * are loaded separately for the selected-drug sidebar. */
 function fullGuidelineMarkup(){return '';}

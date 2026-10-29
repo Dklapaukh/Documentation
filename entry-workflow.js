@@ -170,7 +170,7 @@ function ivEntryChoices(key,label,values){
  const data=eventDraft.pocketEquipment||{};
  return `<fieldset class="native-iv-choices"><legend>${label}</legend>${values.map((value,i)=>`<button type="button" class="quiet" data-iv-field="${key}" data-iv-value="${value}" aria-pressed="${data[key]===value}" ${key==='size'?`style="--iv-colour:${IV_ENTRY_COLOURS[i]}"`:''}>${value}${key==='size'?'G':''}</button>`).join('')}</fieldset>`;
 }
-function nativeIvEditor(){return `<section class="native-iv-entry"><h3>IV cannulation</h3>${ivEntryChoices('size','Cannula size',IV_ENTRY_SIZES)}${ivEntryChoices('side','Side',['Left','Right'])}${ivEntryChoices('site','Location',['ACF','Forearm','Hand','Foot','EJ'])}${ivEntryChoices('outcome','Outcome',['Successful','Unsuccessful'])}<label>Notes<textarea data-care-field="details" placeholder="Notes…">${esc(eventDraft.details||'')}</textarea></label></section>`;}
+function nativeIvEditor(){return `<section class="native-iv-entry"><h3>IV cannulation</h3>${ivEntryChoices('size','Cannula size',IV_ENTRY_SIZES)}${ivEntryChoices('side','Side',['Left','Right'])}${ivEntryChoices('site','Location',['ACF','Forearm','Hand','Foot','EJ'])}${ivEntryChoices('outcome','Outcome',['Successful','Unsuccessful'])}<label>Notes<textarea rows="1" data-care-field="details" placeholder="Notes…">${esc(eventDraft.details||'')}</textarea></label></section>`;}
 const nativeEventEditor=eventEditor;
 eventEditor=function(procedure=false){return !procedure&&eventDraft?.pocketProcedure==='iv'?nativeIvEditor():nativeEventEditor(procedure);};
 const framedNotesEquipment=openNotesEquipment;

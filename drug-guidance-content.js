@@ -2198,7 +2198,7 @@ const DRUG_GUIDELINE_CONTENT = {
    ]
   }
  ],
- "cpg-drugs/eas-14-3.pdf": [
+ "https://cpg.stjohn.org.nz/tabs/medicines/page/adrenaline-eas": [
   {
    "title": "Mechanism of action",
    "paragraphs": [
@@ -3120,7 +3120,7 @@ const DRUG_GUIDELINE_CONTENT = {
    ]
   }
  ],
- "cpg-drugs/eas-14-4.pdf": [
+ "https://cpg.stjohn.org.nz/tabs/medicines/page/amiodarone-eas": [
   {
    "title": "Mechanism of action",
    "paragraphs": [
