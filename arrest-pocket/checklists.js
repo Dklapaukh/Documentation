@@ -1,11 +1,11 @@
 const ARREST_CHECKLISTS=[
- {id:'arrest',label:'Arrest checklist',code:'EAS 3.14',pdf:'../cpg-cardiac-arrest.pdf#page=2',items:[
+ {id:'arrest',label:'Arrest checklist',code:'EAS 3.14',pdf:'https://cpg.stjohn.org.nz/tabs/guidelines/cardiac-eas/page/cardiac-arrest-eas#page=2',items:[
  'Team leader identified.','Roles allocated and confirmed.','CPR feedback device and metronome on if available.','Defibrillator screen visible to the team leader.','Airway adjunct or ETT in place and ventilation adequate.','ETCO2 attached and waveform visible.','Oxygen flow and supply adequate.','IV/IO access secure, two sites if possible.','Consider underlying and reversible causes.','Appropriate medicines administered.','Initiate documentation.','Communication with family/bystanders.']},
- {id:'postrosc',label:'Post ROSC checklist',code:'EAS 3.15',pdf:'../cpg-post-rosc.pdf#page=2',items:[
+ {id:'postrosc',label:'Post ROSC checklist',code:'EAS 3.15',pdf:'https://cpg.stjohn.org.nz/tabs/guidelines/cardiac-eas/page/treatment-following-rosc-eas#page=2',items:[
  'Airway and ventilation are adequate/secure.','Vital signs, including blood glucose level.','Backup for RSI called for if indicated.','IV access secure.','ETCO2 35–45 mmHg if ventilated.','Sedation and neuromuscular blockade if indicated.','BP above target.','12 lead ECG.','Confirm appropriate transport destination.']},
- {id:'preparation',label:'Preparation for RSI',code:'EAS 9.2 · Airway Backup Checklist',pdf:'../cpg-preparation-rsi.pdf',intro:'Prepare for RSI while awaiting CCP backup.',items:[
+ {id:'preparation',label:'Preparation for RSI',code:'EAS 9.2 · Airway Backup Checklist',pdf:'https://cpg.stjohn.org.nz/tabs/guidelines/intubation-and-ventilation/page/preparation-for-rsi-eas',intro:'Prepare for RSI while awaiting CCP backup.',items:[
  'Pre-oxygenate by mask.','Attach monitor, including ETCO2.','Gain IV access, preferably in two sites.','Prepare a running line of 0.9% sodium chloride.','Position the patient for optimal airway control.','Place an ETT holder under the patient’s head.','Ensure suction is working and turn it off.','Prepare a manual ventilation bag with PEEP valve.','Maximise space and clear away unnecessary equipment.','Consider travelling toward backup.']},
- {id:'rsi',label:'RSI checklist',code:'EAS 9.4',pdf:'../cpg-rsi-checklist.pdf',items:[
+ {id:'rsi',label:'RSI checklist',code:'EAS 9.4',pdf:'https://cpg.stjohn.org.nz/tabs/guidelines/intubation-and-ventilation/page/rsi-checklist-eas',items:[
  'Roles assigned — Team leader.','Roles assigned — Airway.','Roles assigned — Airway assistant.','Roles assigned — Drugs and monitoring.',
  'Patient prepared — Check oxygen supply and pre-oxygenate.','Patient prepared — Consider nasal prongs.','Patient prepared — Position optimised.','Patient prepared — IV access patent. Running line attached.','Patient prepared — Consider marking surgical airway landmarks.',
  'Monitoring attached and visible — Baseline vital signs.','Monitoring attached and visible — Pulse oximetry, capnography, and cycling BP.',

@@ -1,0 +1,204 @@
+/* Apple-style form controls within the existing clinical instrument layout. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  border: 1px solid #c6c7cc;
+  border-radius: 7px;
+  color: #202124;
+  background-color: #f4f4f7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20'%3E%3Cpath d='m5 7 3-3 3 3M5 13l3 3 3-3' fill='none' stroke='%230078e8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-size: 16px 20px;
+  background-repeat: no-repeat;
+  padding-right: 34px !important;
+  min-height: 42px;
+  line-height: 1.3;
+}
+select:focus-visible, input[role="combobox"]:focus-visible {
+  outline: 2px solid #007aff;
+  outline-offset: 1px;
+}
+.drug-picker input[role="combobox"], .guideline-search input[role="combobox"] {
+  border-radius: 7px 0 0 7px;
+  border-color: #c6c7cc;
+  background: #fff;
+}
+button[data-drug-toggle], button[data-guideline-list] {
+  color: #007aff;
+  background: #f4f4f7;
+  border: 1px solid #c6c7cc;
+  border-radius: 0 7px 7px 0;
+  font-size: 18px;
+  min-width: 42px;
+  min-height: 42px;
+}
+.drug-matches, #guidelineMatches {
+  padding: 4px;
+  border: 1px solid #c6c7cc;
+  border-radius: 8px;
+  background: #fcfcfd;
+  box-shadow: 0 4px 14px #20212415;
+}
+.drug-matches [role="option"], #guidelineMatches [role="option"] {
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 5px;
+  min-height: 40px;
+  color: #202124;
+  background: transparent;
+}
+.drug-matches [role="option"]:hover, #guidelineMatches [role="option"]:hover,
+.drug-matches [data-keyboard-active="true"], #guidelineMatches [data-keyboard-active="true"] {
+  background: #007aff;
+  color: #fff;
+}
+#guidelineMatches [data-keyboard-active="true"] small { color: inherit; }
+
+/* Reference content begins at the top; the header's Guidance toggle remains. */
+.reference-dock { position: relative; }
+.reference-dock .reference-toolbar {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 4;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.reference-toolbar [data-open-compact-guidance] { display: none; }
+.reference-toolbar #closeReference { width: 28px; min-height: 28px; height: 28px; }
+.reference-pane { padding: 7px 14px 12px; }
+.reference-pane .guideline-cards { margin-top: 0; padding-right: 24px; }
+.reference-pane > h2:first-child, .reference-pane > h3:first-child { margin-top: 3px; }
+.reference-pane .record-table-section { margin: 0 0 18px; }
+.reference-pane .vitals-matrix-section h2 { margin: 0; padding: 3px 28px 9px 0; font-size: 16px; }
+.reference-pane .clinical-table { font-size: 14px; color: #191d1a; }
+.reference-pane .clinical-table thead th { font-size: 11px; color: #344432; }
+.reference-pane .clinical-table .table-actions { min-width: 68px; }
+.reference-pane .clinical-table .table-actions button { min-height: 36px; font-size: 11px; }
+
+/* Observation times are columns; vital signs and units stay fixed at the left. */
+.clinical-table.vitals-matrix { width: 100%; table-layout: fixed; }
+.clinical-table.vitals-matrix th:first-child { width: 90px; }
+.clinical-table.vitals-matrix thead th { text-align: center; font-size: 13px; padding: 9px 5px; }
+.clinical-table.vitals-matrix thead th:first-child { text-align: left; }
+.clinical-table.vitals-matrix tbody th {
+  font: 600 14px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #263226;
+  padding: 9px 8px;
+}
+.vitals-matrix th small { display: block; color: #5c6659; font-size: 10px; font-weight: 400; margin-top: 2px; }
+.clinical-table.vitals-matrix td {
+  padding: 9px 5px;
+  text-align: center;
+  font: 600 20px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vitals-matrix tfoot td { padding: 4px; }
+.vitals-matrix tfoot button { font-size: 11px; padding: 4px 7px; min-height: 32px; }
+.clinical-table.vitals-matrix .news-incomplete { font-size: 19px; }
+
+/* Keyboard entry is a clear table; the original paper layout stays in touch mode. */
+#careModal.keyboard-vitals .care-modal-shell { max-width: 850px; margin: 0 auto; }
+#careModal.keyboard-vitals .care-modal-body { padding: 14px 22px; }
+.vitals-mode-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 10px; }
+.vitals-mode-toolbar h2 { margin: 0; font-size: 19px; }
+.vitals-mode-toolbar button { min-height: 40px; }
+.vitals-entry-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.vitals-entry-table thead th { text-align: left; font-size: 11px; font-weight: 500; text-transform: uppercase; color: #566052; padding: 8px; border-bottom: 1px solid #aab6a2; }
+.vitals-entry-table thead th:first-child { width: 26%; }
+.vitals-entry-table thead th:nth-child(2) { width: 38%; }
+.vitals-entry-table thead th:nth-child(3) { width: 16%; }
+.vitals-entry-table tbody th, .vitals-entry-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #c2c9bb; }
+.vitals-entry-table tbody th { font-size: 16px; font-weight: 600; }
+.vitals-entry-table th label { margin: 0; color: #202820; font-size: inherit; font-weight: inherit; }
+.vitals-entry-table input { margin: 0; width: 100%; min-height: 42px; padding: 6px 10px; font-size: 22px; background: #fff; font-variant-numeric: tabular-nums; }
+.vitals-entry-table input:focus { outline: 2px solid #007aff; outline-offset: 0; }
+.vitals-entry-table td:nth-child(3) { font-size: 12px; color: #596451; }
+.vitals-entry-table td:last-child { padding: 4px; }
+.vitals-entry-table button { min-height: 36px; font-size: 11px; padding: 4px; width: 100%; }
+.vitals-entry-table .point-1 { background: #f3efcf; }
+.vitals-entry-table .point-2 { background: #f6dfb1; }
+.vitals-entry-table .point-3 { background: #efc7c0; }
+.keyboard-news-result { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+.keyboard-news-result p { margin: 0; }
+.keyboard-news-result .subtle { font-size: 11px; }
+#careModal.keyboard-vitals .prototype-context { margin-top: 4px; }
+#careModal.keyboard-vitals .care-modal-bottom { padding: 10px 22px; }
+@media (max-width:700px) {
+  #careModal.keyboard-vitals .care-modal-body { padding: 12px; }
+  .vitals-entry-table tbody th { font-size: 14px; }
+  .vitals-entry-table thead th:first-child { width: 24%; }
+  .vitals-entry-table thead th:nth-child(2) { width: 36%; }
+  .vitals-entry-table thead th:nth-child(3) { width: 17%; }
+  .vitals-entry-table input { font-size: 20px; }
+  .reference-pane { padding: 5px 10px 10px; }
+}
+/* Override the earlier close-button gutter and align each combo as one control. */
+.reference-dock .reference-pane { padding: 7px 14px 12px; }
+.reference-dock .pdf-pane { padding: 0; }
+.reference-dock .search-field { padding-right: 24px; }
+.drug-picker, .guideline-search { column-gap: 0; }
+.drug-picker > label, .guideline-search > label { margin-bottom: 0; min-width: 0; }
+.drug-picker input[role="combobox"], .guideline-search input[role="combobox"] { height: 46px; min-height: 46px; }
+.drug-picker > button[data-drug-toggle], .guideline-search > button[data-guideline-list] {
+  align-self: end;
+  height: 46px;
+  min-height: 46px;
+  margin: 0;
+  border-left: 0;
+}
+.drug-matches, #guidelineMatches { margin-top: 5px; }
+#careModal input[data-care-field]:focus-visible { outline: 2px solid #007aff; outline-offset: 1px; }
+#careModal.keyboard-vitals .vitals-entry-table input { height: 44px; min-height: 44px; padding: 6px 10px; font-size: 22px; line-height: 1.2; }
+@media (max-width:700px) { .reference-dock .reference-pane { padding: 5px 10px 10px; } }
+
+/* Searchable controls share the route/unit select's surface and chevrons. */
+.drug-picker input[role="combobox"], .guideline-search input[role="combobox"] { background:#f4f4f7; }
+.drug-picker > button[data-drug-toggle], .guideline-search > button[data-guideline-list] {
+ font-size:0; width:34px; min-width:34px; padding:0;
+ background:#f4f4f7 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20'%3E%3Cpath d='m5 7 3-3 3 3M5 13l3 3 3-3' fill='none' stroke='%230078e8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+}
+.native-iv-entry h3 { font-size:16px; margin-bottom:12px; }
+.native-iv-choices { padding:10px 0; margin:0; border:0; border-bottom:1px solid #c2c9bb; display:flex; flex-wrap:wrap; gap:5px; }
+.native-iv-choices legend { float:left; width:100%; margin-bottom:7px; font-size:12px; font-weight:600; }
+.native-iv-choices button { min-width:65px; min-height:44px; font-size:14px; }
+.native-iv-choices button[data-iv-field="size"] { border-top:4px solid var(--iv-colour); }
+.native-iv-choices button[aria-pressed="true"] { background:#d5e3cb; border-color:#728565; color:#223a19; }
+.native-iv-entry > label { margin-top:12px; }
+.vital-limit-controls { display:inline-flex; gap:4px; margin-top:4px; }
+#careModal .vital-limit-controls button { width:auto; min-width:44px; min-height:32px; padding:3px 8px; font-size:12px; }
+.vital-limit-controls button[aria-pressed="true"] { background:#263c4c; color:#fff; border-color:#263c4c; }
+.paper-vital > .vital-limit-controls { margin:0 10px 5px; }
+.gcs-back { margin-right:12px; }
+.clinical-table.vitals-matrix td[data-vitals-column] { cursor:pointer; touch-action:manipulation; }
+.clinical-table.vitals-matrix td[data-vitals-column]:focus-visible { outline:2px solid #007aff; outline-offset:-2px; }
+.reference-dock #expandReference, .reference-dock #closeReference { position:absolute; top:0; width:28px; height:28px; min-height:28px; padding:0; border:0; color:#293c2c; background:#e8e9e3; font-size:20px; }
+.reference-dock #expandReference { right:30px; }
+.reference-dock #closeReference { right:0; }
+.reference-pane .vitals-matrix-section h2 { padding-right:55px; }
+.reference-pane .guideline-cards { padding-right:55px; }
+.reference-dock .search-field { padding-right:55px; }
+.app-shell.has-reference.reference-expanded { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
+.app-shell.reference-expanded > main { display:none; }
+.app-shell.reference-expanded .reference-dock { grid-column:1; grid-row:1; border-left:0; }
+
+/* Straight arrows: open anywhere; expand from the sidebar's top-left corner. */
+.actions #toggleGuidance { min-width:40px; font-size:24px; line-height:1; padding:4px 10px; }
+.reference-dock #expandReference { left:0; right:auto; z-index:5; }
+.reference-dock .reference-pane { padding-top:7px; }
+.reference-pane > h2:first-child, .reference-pane .vitals-matrix-section h2,
+.reference-pane .tour-heading, .reference-pane .guideline-cards { padding-left:24px; }
+.reference-dock .search-field { padding-left:24px; }
+/* Vitals and GCS are non-modal editors: share the reference track without
+   rebuilding either form. Full-screen reference hides, then restores the draft. */
+body.notes-reference-open #careModal:not(.inline-care-editor) { left:0; right:var(--notes-reference-width,36vw); width:auto; }
+body.notes-reference-expanded #careModal { display:none; }
+@media(max-width:760px) {
+ body.notes-reference-open #careModal:not(.inline-care-editor) { top:calc(var(--entry-header-height,var(--header-height)) + 32dvh); right:0; width:100%; height:calc(68dvh - var(--entry-header-height,var(--header-height))); }
+}
+[data-picker-sidebar]{min-width:40px;font-size:25px;line-height:1;padding:4px 8px}

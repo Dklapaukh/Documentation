@@ -6,7 +6,7 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sections=['History','Assessment','Impression','Vitals & Interventions','Disposition','Output'];
-const emptyState=()=>({fields:{},arrest:emptyArrestState(),vitalSets:[],careEvents:[],casCall:false,social:[],frailty:null,fallsAssessment:Object.fromEntries(FALLS_ASSESSMENT.items.map(f=>[f.id,'Not assessed'])),fallsAssessmentConfirmed:false,treatmentEvents:[],fallsFlags:[],differentials:[],pathways:[],referrals:[],flags:{},edits:{}});
+const emptyState=()=>({fields:{},arrest:emptyArrestState(),vitalSets:[],careEvents:[],casCall:false,social:[],complaintType:'Medical',complaints:[],guidelines:[],activeGuideline:'',frailty:null,fallsAssessment:Object.fromEntries(FALLS_ASSESSMENT.items.map(f=>[f.id,'Not assessed'])),fallsAssessmentConfirmed:false,treatmentEvents:[],fallsFlags:[],differentials:[],pathways:[],referrals:[],flags:{},edits:{}});
 let state=emptyState(),step=0;
 let guidanceMode='';
 let guidanceAssessment=false,referencePane='',tourStep=0;
@@ -38,7 +38,7 @@ function cpgSuggestions(text){
  const matches=matchingCpgs(text);if(!matches.length)return '';
  return `<details class="cpg"><summary>NZ CPGs · ${matches.map(c=>esc(c.title)).join(', ')}</summary><p>Suggested references · confirm relevance. Selected prompts only.</p>${matches.map(c=>`<div class="cpg-item"><a href="${c.url}" target="_blank" rel="noopener noreferrer">${esc(c.title)} ↗</a>${c.note?`<p>${esc(c.note)}</p>`:''}${c.prompts.map((p,i)=>`<label>${esc(p)}<select data-flag="${c.id}|${i}" aria-label="${esc(c.title+' — '+p)}">${options(['Present','Absent','Not assessed'],state.flags[c.id+'|'+i]||'')}</select></label>`).join('')}${!c.prompts.length?'<p>See guideline for red flags and documentation criteria.</p>':''}</div>`).join('')}</details>`;
 }
-function diagnosisName(){return (v('diagnosis')==='Other'?v('diagnosisOther'):v('diagnosis')).trim();}
+function diagnosisName(){return (v('diagnosisOther')||v('diagnosis')).trim();}
 // Deliberately conservative: exclude negated, historical, uncertain and question
 // phrases. This is a keyword reminder, not validated NLP or a PE probability rule.
 function peReminderMatches(){
@@ -60,21 +60,11 @@ function updatePeReminder(){
  // Do not replace a reference the clinician is already reading or re-render inputs.
  if(peReminderMatches()&&!previouslyVisible&&!referencePane)openReference('clinical');
 }
-function clinicalTopic(){return v('dispositionGuidance')||v('diagnosis');}
-function diagnosisPanels(){
- let html=guidelineUsedPanel()+peReminderPanel();
- if(clinicalTopic()==='Myocardial ischaemia'||state.treatmentEvents.length)html+=myocardialPanel();
- if(clinicalTopic()==='Falls'||hasFallsAssessment()||state.fallsFlags.length)html+=fallsPanel();
- if(clinicalTopic()==='Pulmonary Embolism (PE)')html+=pePanel();
- if(clinicalTopic()==='Ankle Injury')html+=anklePanel();
- return html;
-}
+function clinicalTopic(){return activeGuidelineName();}
+function diagnosisPanels(){return selectedGuidelinePanels()+peReminderPanel();}
 function hasFallsAssessment(){return state.fallsAssessmentConfirmed||FALLS_ASSESSMENT.items.some(f=>state.fallsAssessment[f.id]!=='Not assessed');}
-function fallsCase(){return clinicalTopic()==='Falls'||v('diagnosis')==='Falls'||hasFallsAssessment()||state.fallsFlags.length>0;}
-function diagnosisLauncher(){
- const names={'Myocardial ischaemia':'Treatment sidebar','Falls':'Falls sidebar','Pulmonary Embolism (PE)':'PE risk assessment sidebar','Ankle Injury':'Ottawa Ankle Rules sidebar'};
- return diagnosisPanels()?`<button class="quiet clinical-launcher" data-open-clinical="true">${names[clinicalTopic()]||(peReminderMatches()?'PE differential prompt':'Recorded treatments / flags')} ↗</button>`:'';
-}
+function fallsCase(){return selectedGuidelines().includes('Falls')||clinicalTopic()==='Falls'||v('diagnosis')==='Falls'||hasFallsAssessment()||state.fallsFlags.length>0;}
+function diagnosisLauncher(){return '';}
 function dispositionGuidanceSelect(){
  return `<label>Clinical disposition guidance<select data-field="dispositionGuidance"><option value="">Use provisional diagnosis${v('diagnosis')?' — '+esc(v('diagnosis')):''}</option>${DIAGNOSIS.options.filter(x=>x!=='Other').map(x=>`<option value="${esc(x)}" ${v('dispositionGuidance')===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;
 }
@@ -94,7 +84,7 @@ function setFallsAssessment(id,next){
  state.fallsAssessment[id]=next;state.fallsAssessmentConfirmed=false;changed();render();
 }
 function fallsAssessmentControls(){
- return `<section class="falls-assessment"><h3>Falls assessment</h3><p class="subtle">Yes / No / Not assessed. These states enter the note only after confirmation.</p>${FALLS_ASSESSMENT.items.map(f=>{
+ return `<section class="falls-assessment"><h3>Falls assessment</h3>${FALLS_ASSESSMENT.items.map(f=>{
   const current=state.fallsAssessment[f.id];
   return `<div class="assessment-state-row"><label class="assessment-state-label"><input type="checkbox" data-falls-cycle="${f.id}" aria-label="${esc(f.label)}" aria-describedby="falls-state-${f.id}" ${current==='Yes'?'checked':''}>${esc(f.label)}</label><div class="state-options" role="group" aria-label="${esc(f.label)} state">${FALLS_ASSESSMENT.states.map(option=>`<button class="quiet" data-falls-state="${f.id}" data-value="${option}" aria-label="${esc(f.label+' — '+option)}" aria-pressed="${current===option}">${option}</button>`).join('')}</div><span class="sr-only" id="falls-state-${f.id}">Current state: ${current}. Checkbox cycles Yes, No, Not assessed.</span></div>`;
  }).join('')}<label class="confirmation-check"><input id="confirmFallsAssessment" type="checkbox" ${state.fallsAssessmentConfirmed?'checked':''}>Include these states in the note</label><div class="falls-warnings" aria-live="polite">${fallsAssessmentPrompts()}</div></section>`;
@@ -119,7 +109,7 @@ function myocardialPanel(){
 }
 function fallsPanel(){
  const table=(name,items,context)=>`<section class="falls-table ${name.toLowerCase()}"><h3>${name} flags</h3><p class="subtle">${context}</p>${items.map(f=>`<label class="flag-check"><input type="checkbox" data-check="fallsFlags" value="${f.id}" ${state.fallsFlags.includes(f.id)?'checked':''}>${esc(f.label)}</label>`).join('')}</section>`;
- return `<section class="diagnosis-panel"><div class="rowhead"><h3>Falls</h3><a href="${DIAGNOSIS.falls.url}" target="_blank" rel="noopener noreferrer">CPG EAS 13.3 ↗</a></div><p class="subtle">Red / orange flags: tick findings present. Unticked flags are not recorded as absent.</p>${fallsAssessmentControls()}<div class="grid">${table('Red',DIAGNOSIS.falls.red,'ED assessment, usually by ambulance')}${table('Orange',DIAGNOSIS.falls.orange,'Primary-care follow-up')}</div></section>`;
+ return `<section class="diagnosis-panel"><div class="rowhead"><h3>Falls</h3><a href="${DIAGNOSIS.falls.url}" target="_blank" rel="noopener noreferrer">CPG EAS 13.3 ↗</a></div>${fallsAssessmentControls()}<div class="grid">${table('Red',DIAGNOSIS.falls.red,'ED assessment, usually by ambulance')}${table('Orange',DIAGNOSIS.falls.orange,'Primary-care follow-up')}</div></section>`;
 }
 function localDateTime(date){const pad=n=>String(n).padStart(2,'0');return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;}
 function addTreatmentEvent(id){
@@ -138,7 +128,7 @@ function eventTime(e){return new Intl.DateTimeFormat('en-NZ',{dateStyle:'medium'
 function treatmentNote(){
  const events=state.treatmentEvents.filter(e=>e.at).slice().sort((a,b)=>new Date(a.at)-new Date(b.at));
  if(!events.length)return '';
- return 'Treatment timeline\n'+events.map(e=>{const t=DIAGNOSIS.myocardial.treatments.find(t=>t.id===e.treatmentId);return `${eventTime(e)} — ${t.action}${e.detail.trim()?': '+e.detail.trim():t.medication?' — dose not recorded':''}`;}).join('\n');
+ return 'Treatment timeline\n'+events.map(e=>{const t=guidelineAction(e.treatmentId);return `${eventTime(e)} — ${t.action}${e.detail.trim()?': '+e.detail.trim():t.medication?' — dose not recorded':''}`;}).join('\n');
 }
 function fallsNote(){
  if(!state.fallsFlags.length)return '';
@@ -148,9 +138,9 @@ function render(){
  $('navigation').innerHTML=sections.map((s,i)=>`<button data-step="${i}" class="${step===i?'active':''}" ${step===i?'aria-current="page"':''}><span class="section-number">0${i+1}</span>${s}</button>`).join('');
  $('back').disabled=step===0;$('next').disabled=step===5;
  let html='';
- if(step===0)html=card('History',text('presentingComplaint','Presenting complaint',{short:true})+text('hpc','History of presenting complaint')+`<div id="historyCpg">${cpgSuggestions(v('hpc'))}</div>`,'History of Incident')+card('Social history',`<div class="social-history-columns">${checks(LOCAL.social,state.social,'social')}${text('socialDetails','Details')}</div>`)+card('Rockwood frailty',scale());
+ if(step===0)html=card('History',complaintControls()+text('presentingComplaint','Presenting complaint',{short:true})+text('hpc','History of presenting complaint')+`<div id="historyCpg">${cpgSuggestions(v('hpc'))}</div>`,'History of Incident')+card('Social history',`<div class="social-history-columns">${checks(LOCAL.social,state.social,'social')}${text('socialDetails','Details')}</div>`)+card('Rockwood frailty',scale());
  if(step===1)html=`<div class="assessment">${assessment('SUBJECTIVE')}${assessment('OBJECTIVE')}</div><div id="peReminderNotice" role="status">${peReminderLauncher()}</div>`;
- if(step===2)html=card('Provisional diagnosis',select('diagnosis','Diagnosis',DIAGNOSIS.options)+(v('diagnosis')==='Other'?text('diagnosisOther','Other diagnosis',{short:true,required:true}):'')+text('diagnosisReason','Clinical reasoning',{placeholder:'Supporting evidence / uncertainty',required:true})+`<div id="diagnosisCpg">${v('diagnosis')==='Other'?cpgSuggestions(v('diagnosisOther')):''}</div>`+diagnosisLauncher(),'Clinical Impression')+card('Guideline Used',select('guidelineUsed','Guideline Used',Object.keys(GUIDELINES_USED)))+card('Differential diagnoses',`<div id="peReminderNotice" role="status">${peReminderLauncher()}</div>`+state.differentials.map(differentialRow).join('')+'<button class="quiet" id="addDiff">+ Differential</button>')+card('Pathway / research assessment',checks(LOCAL.pathways,state.pathways,'pathways')+(state.pathways.length?text('pathwayDetails','Findings / scores'):''));
+ if(step===2)html=card('Provisional diagnosis',text('diagnosisOther','Provisional diagnosis',{short:true})+text('diagnosisReason','Clinical reasoning',{placeholder:'Supporting evidence / uncertainty',required:true})+`<div id="diagnosisCpg">${v('diagnosis')==='Other'?cpgSuggestions(v('diagnosisOther')):''}</div>`+diagnosisLauncher(),'Clinical Impression')+card('Guidelines used',guidelineSelector())+card('Differential diagnoses',`<div id="peReminderNotice" role="status">${peReminderLauncher()}</div>`+state.differentials.map(differentialRow).join('')+'<button class="quiet" id="addDiff">+ Differential</button>')+card('Pathway / research assessment',checks(LOCAL.pathways,state.pathways,'pathways')+(state.pathways.length?text('pathwayDetails','Findings / scores'):''));
  if(step===3)html=careScreen();
  if(step===4){
   html=card('Treatment',text('treatment','Treatment and en route',{placeholder:'Treatment, response, reassessment and events en route…'}))+card('Disposition',select('disposition','Outcome',CONFIG.dispositions),'Disposition Tab - Screen 1');
@@ -184,13 +174,14 @@ function buildNotes(){
  const source=join([v('source'),v('sourceDetails')],' — ');
  const frailty=state.frailty===null?'':`Rockwood CFS ${state.frailty} — ${LOCAL.frailty[state.frailty-1][0]}.`;
  const social=join([state.social.map(id=>LOCAL.social.find(x=>x.id===id)?.label).filter(Boolean).join('; '),v('socialDetails')],'. ');
- const history=join([line('Presenting complaint',v('presentingComplaint')),line('History source',source),v('hpc').trim(),...['onset','provocation','quality','radiation','severity','timing'].map((k,i)=>line(['Onset / last known well','Provoking / relieving','Quality','Location / radiation','Severity / function','Timing'][i],v(k))),line('Background',v('background')),frailty,line('Social history',social),v('subjective').trim()],'\n\n');
+ const history=join([line('Presenting complaint',join([state.complaints?.join('; '),v('presentingComplaint')],'; ')),line('History source',source),v('hpc').trim(),...['onset','provocation','quality','radiation','severity','timing'].map((k,i)=>line(['Onset / last known well','Provoking / relieving','Quality','Location / radiation','Severity / function','Timing'][i],v(k))),line('Background',v('background')),frailty,line('Social history',social),v('subjective').trim()],'\n\n');
  const flags=Object.entries(state.flags).filter(([,s])=>s).map(([id,s])=>{const [c,i]=id.split('|'),g=LOCAL.cpgs.find(x=>x.id===c);return `${g.title} — ${g.prompts[+i]}: ${s.toLowerCase()}.`;});
  const diagnosis=join([diagnosisName()?`Provisional diagnosis: ${diagnosisName()}`:'',v('diagnosisReason').trim()]);
  const differential=state.differentials.filter(d=>d.diagnosis.trim()||d.reasoning.trim()).map(d=>`• ${d.diagnosis.trim()||'Diagnosis not recorded'}${d.reasoning.trim()?` — ${d.reasoning.trim()}`:' — reasoning not recorded'}`).join('\n');
- const impression=join([v('objective').trim(),state.vitalSets.length?'Vitals\n'+vitalsNote():'',diagnosis,line('Guideline used',v('guidelineUsed')),differential?'Differentials\n'+differential:'',flags.length?'CPG documentation\n'+flags.join('\n'):'',fallsNote(),confirmedFallsAssessmentNote(),state.pathways.length?'Pathway assessments: '+state.pathways.join(', ')+ (v('pathwayDetails').trim()?'\n'+v('pathwayDetails').trim():''):''],'\n\n');
+ const impression=join([v('objective').trim(),state.vitalSets.length?'Vitals\n'+vitalsNote():'',diagnosis,line('Guidelines used',selectedGuidelines().join('; ')),differential?'Differentials\n'+differential:'',flags.length?'CPG documentation\n'+flags.join('\n'):'',fallsNote(),confirmedFallsAssessmentNote(),state.pathways.length?'Pathway assessments: '+state.pathways.join(', ')+ (v('pathwayDetails').trim()?'\n'+v('pathwayDetails').trim():''):''],'\n\n');
  const referrals=state.referrals.map(id=>{const r=LOCAL.referrals.find(x=>x.id===id);return `${r.label} ${r.tag}`;}).join('; ');
- const disposition=join([treatmentNote(),state.careEvents.length?'Vitals & Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment and en route',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals requested: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
+ const unified=typeof combinedClinicalEvents==='function';
+ const disposition=join([unified?'':treatmentNote(),(unified?combinedClinicalEvents().length:state.careEvents.length)?'Vitals & Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment and en route',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals requested: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
  return {'History of Incident':history,'Clinical Impression':impression,'Disposition':disposition};
 }
 function outputNotes(){return {...buildNotes(),...state.edits};}
@@ -218,7 +209,7 @@ function searchHelp(){
 // Local animations use illustrative examples; they cannot access or edit state.
 function renderTour(){
  const slide=APP_TOUR[tourStep],n=i=>String(i+1).padStart(2,'0');
- $('explainContent').innerHTML=`<div class="tour-heading"><span class="tour-index">${n(tourStep)} / ${APP_TOUR.length}</span><h2>${esc(slide.title)}</h2></div>${tourDemo(slide)}<div class="tour-playback"><span>Example · 5-second demo</span><button class="quiet" id="tourPause" aria-pressed="false">Pause</button><button class="quiet" id="tourReplay">Replay</button></div><p class="tour-caption">${esc(slide.description)}</p><div class="tour-controls"><button class="quiet" id="tourBack" ${tourStep===0?'disabled':''}>Previous</button><button id="tourNext">${tourStep===APP_TOUR.length-1?'Done':'Next'}</button></div><nav class="tour-steps" aria-label="Explain app topics">${APP_TOUR.map((s,i)=>`<button class="quiet ${i===tourStep?'active':''}" data-tour-step="${i}" aria-label="${esc(s.title)}" ${i===tourStep?'aria-current="step"':''}>${n(i)} ${esc(s.short)}</button>`).join('')}</nav><p class="subtle">Examples never change your draft. Reduced-motion preferences show a still demonstration.</p>`;
+ $('explainContent').innerHTML=`<div class="tour-heading"><span class="tour-index">${n(tourStep)} / ${APP_TOUR.length}</span><h2>${esc(slide.title)}</h2></div>${tourDemo(slide)}<div class="tour-playback"><span>Example · 5-second demo</span><button class="quiet" id="tourPause" aria-pressed="false">Pause</button><button class="quiet" id="tourReplay">Replay</button></div><p class="tour-caption">${esc(slide.description)}</p><div class="tour-controls"><button class="quiet" id="tourBack" ${tourStep===0?'disabled':''}>Previous</button><button id="tourNext">${tourStep===APP_TOUR.length-1?'Done':'Next'}</button></div><nav class="tour-steps" aria-label="Tutorial topics">${APP_TOUR.map((s,i)=>`<button class="quiet ${i===tourStep?'active':''}" data-tour-step="${i}" aria-label="${esc(s.title)}" ${i===tourStep?'aria-current="step"':''}>${n(i)} ${esc(s.short)}</button>`).join('')}</nav><p class="subtle">Examples never change your draft. Reduced-motion preferences show a still demonstration.</p>`;
  $('explainPane').scrollTop=0;
 }
 function showTour(){if($('careModal').open)stashCareDraft();tourStep=0;renderTour();openReference('explain');}
@@ -229,7 +220,7 @@ document.addEventListener('input',e=>{
  if(t.id==='frailty'){
   state.frailty=+t.value;changed();const data=LOCAL.frailty[state.frailty-1];$('score').textContent=`${state.frailty} · ${data[0]}`;$('scaleDescription').textContent=data[1];t.setAttribute('aria-valuetext',`${state.frailty} ${data[0]}`);return;
  }
- if(t.dataset.field){if(t.classList.contains('narrative')){t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px';}state.fields[t.dataset.field]=t.value;changed();if(['subjective','objective'].includes(t.dataset.field))updatePeReminder();if(t.dataset.field==='hpc')$('historyCpg').innerHTML=cpgSuggestions(t.value);if(t.dataset.field==='diagnosisOther')$('diagnosisCpg').innerHTML=cpgSuggestions(t.value);}
+ if(t.dataset.field){if(t.classList.contains('narrative')){t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px';}state.fields[t.dataset.field]=t.value;changed();if(['subjective','objective'].includes(t.dataset.field))updatePeReminder();if(t.dataset.field==='hpc')$('historyCpg').innerHTML=cpgSuggestions(t.value);if(t.dataset.field==='diagnosisOther'&&$('diagnosisCpg'))$('diagnosisCpg').innerHTML=cpgSuggestions(t.value);}
  if(t.dataset.diff!==undefined){state.differentials[+t.dataset.diff][t.dataset.part]=t.value;changed();if(t.dataset.part==='diagnosis')$('diff-cpg-'+t.dataset.diff).innerHTML=cpgSuggestions(t.value);}
  if(t.dataset.event!==undefined){updateTreatmentEvent(t);changed();}
  if(t.dataset.flag){state.flags[t.dataset.flag]=t.value;changed();syncFlagInputs(t);}
@@ -238,7 +229,7 @@ function syncFlagInputs(source){document.querySelectorAll('[data-flag]').forEach
 document.addEventListener('change',e=>{
  const t=e.target;
  if(t.id==='confirmFallsAssessment'){state.fallsAssessmentConfirmed=t.checked;changed();return;}
- if(t.dataset.check){const key=t.dataset.check,id=t.value;if(t.checked){state[key].push(id);if(key==='social'){const item=LOCAL.social.find(x=>x.id===id);if(item?.group)state.social=state.social.filter(x=>x===id||LOCAL.social.find(a=>a.id===x)?.group!==item.group);if(id==='independent_adls')state.social=state.social.filter(x=>x!=='help_with_adls');if(id==='help_with_adls')state.social=state.social.filter(x=>x!=='independent_adls');}}else state[key]=state[key].filter(x=>x!==id);changed();render();}
+ if(t.dataset.check){const key=t.dataset.check,id=t.value;if(t.checked){state[key].push(id);}else state[key]=state[key].filter(x=>x!==id);changed();render();}
  if(['disposition','diagnosis','dispositionGuidance','guidelineUsed'].includes(t.dataset.field)){if(t.dataset.field==='diagnosis')state.fields.dispositionGuidance='';render();if(t.dataset.field==='disposition'&&isNonTransport())openNonTransportChecklist();else if(t.dataset.field!=='disposition'&&diagnosisPanels())openReference('clinical');}
  if(t.dataset.guidanceMode&&t.value){showHelp(t.dataset.guidanceMode+'|'+t.value);t.value='';}
 });
@@ -247,8 +238,8 @@ document.addEventListener('click',e=>{
  if(cycle){e.preventDefault();const id=cycle.dataset.fallsCycle;const sequence=['Not assessed','Yes','No'];setFallsAssessment(id,sequence[(sequence.indexOf(state.fallsAssessment[id])+1)%3]);return;}
  const anchor=e.target.closest('a');
  const references={
-  [DIAGNOSIS.myocardial.url]:['cpg-myocardial.pdf','CPG EAS 3.2'],
-  [DIAGNOSIS.falls.url]:['cpg-falls.pdf','CPG EAS 13.3']
+  [DIAGNOSIS.myocardial.url]:['https://cpg.stjohn.org.nz/tabs/guidelines/cardiac-eas/page/myocardial-ischaemia-eas','CPG EAS 3.2'],
+  [DIAGNOSIS.falls.url]:['https://cpg.stjohn.org.nz/tabs/guidelines/miscellaneous-eas/page/falls-eas','CPG EAS 13.3']
  };
  if(anchor&&references[anchor.href]){e.preventDefault();openDocument(...references[anchor.href]);return;}
  const b=e.target.closest('button');if(!b)return;
@@ -256,14 +247,14 @@ document.addEventListener('click',e=>{
  if(b.dataset.help)showHelp(b.dataset.help);
  if(b.dataset.openClinical)openReference('clinical');
  if(b.dataset.reviewPe){renderClinicalPane();openReference('clinical');}
- if(b.dataset.peResources){state.fields.dispositionGuidance='Pulmonary Embolism (PE)';render();openReference('clinical');}
+ if(b.dataset.peResources){ensureGuideline('Pulmonary Embolism (PE)');render();openReference('clinical');}
  if(b.dataset.addPe&&peReminderMatches()&&!peAlreadyRecorded()){
   state.differentials.push({diagnosis:'Pulmonary Embolism (PE)',reasoning:''});changed();navigate(2);openReference('clinical');
  }
  if(b.id==='tourPause'){const demo=$('tourDemo'),paused=demo.classList.toggle('tour-paused');b.setAttribute('aria-pressed',String(paused));b.textContent=paused?'Play':'Pause';}
  if(b.id==='tourReplay')renderTour();
  if(b.dataset.fallsState){setFallsAssessment(b.dataset.fallsState,b.dataset.value);}
- if(b.dataset.openFalls){state.fields.dispositionGuidance='Falls';render();openReference('clinical');}
+ if(b.dataset.openFalls){ensureGuideline('Falls');render();openReference('clinical');}
  if(b.id==='tourBack'){tourStep=Math.max(0,tourStep-1);renderTour();}
  if(b.id==='tourNext'){if(tourStep===APP_TOUR.length-1)closeReference();else{tourStep++;renderTour();}}
  if(b.dataset.tourStep!==undefined){tourStep=+b.dataset.tourStep;renderTour();}
@@ -281,10 +272,10 @@ document.addEventListener('click',e=>{
   const payload={schemaVersion:LOCAL.schemaVersion,exportedAt:new Date().toISOString(),...state,generatedNotes:buildNotes(),finalNotes:outputNotes()};const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='clinical-documentation.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
 });
-$('back').onclick=()=>navigate(Math.max(0,step-1));$('next').onclick=()=>navigate(Math.min(sections.length-1,step+1));$('helpButton').onclick=showTour;$('helpButton').setAttribute('aria-label','Explain app');$('helpSearch').oninput=()=>{guidanceMode='';searchHelp();};
+$('back').onclick=()=>navigate(Math.max(0,step-1));$('next').onclick=()=>navigate(Math.min(sections.length-1,step+1));$('helpButton').onclick=showTour;$('helpButton').setAttribute('aria-label','Tutorial');$('helpSearch').oninput=()=>{guidanceMode='';searchHelp();};
 // References occupy their own layout track. They never trap focus or cover the editor.
 function openReference(pane){
- referencePane=pane;
+ referencePane=pane;$('toggleGuidance')?.setAttribute('aria-pressed','true');
  $('nonTransportPane').hidden=pane!=='nontransport';
  $('referenceDock').hidden=false;$('appShell').classList.add('has-reference');
  $('guidancePane').hidden=pane!=='guidance';$('pdfPane').hidden=pane!=='pdf';$('diagnosisPane').hidden=pane!=='clinical';$('explainPane').hidden=pane!=='explain';
@@ -296,7 +287,7 @@ function openDocument(url,title){
  $('showReferencePdf').textContent=title;
  openReference('pdf');
 }
-function closeReference(){ referencePane='';$('referenceDock').hidden=true;$('appShell').classList.remove('has-reference'); }
+function closeReference(){ referencePane='';$('toggleGuidance')?.setAttribute('aria-pressed','false');$('referenceDock').hidden=true;$('appShell').classList.remove('has-reference'); }
 $('closeReference').onclick=closeReference;$('showClinical').onclick=()=>{renderClinicalPane();openReference('clinical');};$('showExplain').onclick=showTour;$('showGuidance').onclick=()=>{if(!$('helpResults').innerHTML)searchHelp();openReference('guidance');};$('showReferencePdf').onclick=()=>openReference('pdf');
 $('reset').onclick=()=>{if(confirm('Clear draft?')){clearCareDrafts();nonTransportChecks=[];$('nonTransportPane').innerHTML='';state=emptyState();learningEmailRequested=false;navigate(0);toast('Cleared');}};
 window.addEventListener('beforeunload',e=>{if(Object.values(outputNotes()).some(Boolean)||hasUnsavedCare()){e.preventDefault();e.returnValue='';}});

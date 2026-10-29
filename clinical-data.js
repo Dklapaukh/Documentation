@@ -4,24 +4,7 @@
  * These lists prioritise references, never record an administration or procedure.
  */
 const DRUG_NAMES = ["0.375% ropivacaine", "0.9% sodium chloride", "1% lignocaine", "10% glucose", "8.4% sodium bicarbonate", "Adenosine", "Adrenaline", "Amiodarone", "Aspirin", "Atropine", "Calcium chloride", "Cefazolin", "Ceftriaxone", "Clopidogrel", "Droperidol", "Enoxaparin", "Fentanyl", "Fentanyl and ketamine", "Glucagon", "Glucose gel", "GTN", "Hydrocortisone", "Ibuprofen", "Ipratropium", "Ketamine", "Labetalol", "Levetiracetam", "Loratadine", "Magnesium", "Metaraminol", "Methoxyflurane", "Metoprolol tartrate", "Midazolam", "Morphine", "Naloxone", "Olanzapine", "Ondansetron", "Oxygen", "Oxytocin", "Paracetamol", "Prednisolone", "Prednisone", "Rocuronium", "Salbutamol", "Suxamethonium", "Tenecteplase", "Ticagrelor", "Tramadol", "Tranexamic acid"];
-const GUIDELINES_USED = {
- Seizures:{code:'CPG EAS 5.8',url:'https://cpg.stjohn.org.nz/tabs/guidelines/neurological-eas/page/seizures-eas',pdf:'cpg-seizures.pdf',drugs:['Levetiracetam','Midazolam'],treatment:[
- 'Check BGL and manage the result.',
- 'For generalised seizures lasting over 5 minutes or recurring: adult midazolam IV 5 mg (consider 3 mg with a caution), with one repeat after 5 minutes. Without established IV access: IM 10 mg (consider 5 mg with a caution), with one repeat after 10 minutes.',
- 'For uninterrupted seizing, ambulance midazolam is limited to two parenteral doses across routes. Wait 10 minutes before IV midazolam following IM.',
- 'If seizing continues or recurs after two parenteral midazolam doses: adult levetiracetam IV 2 g. One repeat may be given after 10 minutes if seizures continue or recur at that time.',
- 'Persistent seizures: consider RSI. Request CCP backup for severe airway obstruction, persistent severe hypoxia or when levetiracetam is indicated.',
- 'Adult doses only here. Use the full CPG for children, cautions, prior doses, ongoing/recurrent seizure distinctions and referral criteria.'
- ]},
- Burns:{code:'CPG EAS 4.4',url:'https://cpg.stjohn.org.nz/tabs/guidelines/trauma-eas/page/burns-eas',pdf:'cpg-burns.pdf',drugs:['0.9% sodium chloride','Adrenaline','Oxygen'],treatment:[
- 'Give oxygen for suspected carbon monoxide poisoning following significant smoke inhalation; use the gas-poisoning CPG.',
- 'Cool for at least 20 minutes, normally at scene unless the primary survey identifies an immediately life-threatening problem. For chemicals, remove clothing and decontaminate. Chemical eye burns need at least 30 minutes of irrigation.',
- 'After cooling, assess burn depth and area, then cover with cling film. Prevent hypothermia.',
- 'For hypovolaemia or burns over 20%: 0.9% sodium chloride IV, initially 1 litre for adults or 20 ml/kg for children. Further fluid may be needed for hypovolaemia or transport longer than 1 hour.',
- 'Prominent bronchospasm: nebulised bronchodilators using the asthma CPG. Stridor: nebulised adrenaline using the stridor CPG.',
- 'Consider RSI for immediate airway concerns or extensive face/head burns with prolonged transport. Seek advice early; request CCP backup for airway burns or inability to obey commands.'
- ]}
-};
+const GUIDELINES_USED={};
 const CARE_CONFIG = {
  checked:'2026-10-25',
  newsSource:'https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/',

@@ -60,16 +60,16 @@ function drugSectionMarkup(ref){
  const sections=DRUG_GUIDELINE_CONTENT[ref.pdf]||[];
  const priority=t=>/^contraindications$/i.test(t)?0:/^(dose|dosage)( \/ treatment)?$/i.test(t)?1:2;
  const sorted=sections.map((s,i)=>({...s,order:i})).sort((a,b)=>priority(a.title)-priority(b.title)||a.order-b.order);
- return sorted.map(section=>`<details class="drug-guideline-section" ${priority(section.title)<2?'open':''}><summary>${esc(/^dosage$/i.test(section.title)?'Dose':section.title)}</summary><div>${section.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}</div></details>`).join('');
+ return sorted.map(section=>`<details class="drug-guideline-section ${priority(section.title)===0?'contraindications':priority(section.title)===1?'dose-reference':''}" ${priority(section.title)<2?'open':''}><summary>${esc(/^dosage$/i.test(section.title)?'Dose':section.title)}</summary><div>${section.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}</div></details>`).join('');
 }
 function updateDrugGuidance(force=false){
  if(careView!=='drug'||!$('drugGuidanceContent'))return;
  const root=$('drugGuidanceContent'),raw=eventDraft.name.trim(),name=drugReferenceName(raw);
  const shell=document.querySelector('.drug-entry-shell'),aside=document.querySelector('.drug-reference');
- shell?.classList.toggle('has-drug-reference',!!raw);if(aside)aside.hidden=!raw;
- if(!force&&root.dataset.drug===raw)return;
+ const selected=!!name&&eventDraft.drugSelected!==false;shell?.classList.toggle('has-drug-reference',selected);if(aside)aside.hidden=!selected;
+ if(!force&&root.dataset.drug===raw&&root.dataset.selected===String(selected))return;root.dataset.selected=String(selected);
  root.dataset.drug=raw;
- if(!raw){root.innerHTML='';return;}
+ if(!selected){root.innerHTML='';return;}
  const refs=DRUG_GUIDELINES[name]||[];
  root.innerHTML=`<section class="drug-cpg"><h3>${esc(name||raw)}</h3>${refs.length?`${refs.length>1?`<label>Guideline<select data-drug-reference>${refs.map((r,i)=>`<option value="${i}">${esc(r.title)}</option>`).join('')}</select></label>`:''}<p id="drugReferenceTitle" class="subtle">${esc(refs[0].title)}</p><div id="drugSections">${drugSectionMarkup(refs[0])}</div><a id="drugCpgOnline" href="${refs[0].url}" target="_blank" rel="noopener noreferrer">${esc(refs[0].code)} · NZCPG source ↗</a>`:'<p>No matching NZCPG for this name. Choose a listed drug.</p>'}</section><details class="drug-guideline-section drug-allergies"><summary>Patient allergies</summary><p>Not separately recorded · verify with the patient / clinical record.</p>${v('background').trim()?`<p class="recorded-background">${esc(v('background'))}</p>`:''}</details>`;
 }

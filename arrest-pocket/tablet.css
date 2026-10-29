@@ -18,3 +18,30 @@ body.live-mode,body.large.live-mode{display:grid;grid-template-rows:94px minmax(
 body.live-mode .live-dashboard,body.large.live-mode .live-dashboard,body.live-mode .live-dashboard:has(.postrosc-main){min-height:0}
 @media(max-height:720px){body.live-mode .live-dashboard,body.large.live-mode .live-dashboard,body.live-mode .live-dashboard:has(.postrosc-main){grid-template-rows:minmax(150px,1fr) 46px 160px 38px;gap:8px}}
 @media(max-width:700px){body.live-mode .live-dashboard,body.large.live-mode .live-dashboard{min-height:520px}}
+body.equipment-only>header,body.equipment-only>#main,body.equipment-only>#contextRail,body.equipment-only>.bottom-nav{display:none!important}body.equipment-only{display:block;background:#edf3eb}body.equipment-only dialog{width:calc(100% - 20px);max-height:calc(100dvh - 20px)}
+/* Tutorial is embedded in the tablet workspace; references still use the rail. */
+body .explain-slide img{max-height:55vh;object-fit:contain}
+/* Notes equipment forms use the documentation app's flat clinical-industrial style.
+ * The standalone arrest presentation is deliberately untouched. */
+body.equipment-only{background:#eff0e8;font-family:Arial,Helvetica,sans-serif;color:#283225}body.equipment-only dialog{border-radius:0;border:1px solid #a6b09d;background:#eff0e8;color:#283225;box-shadow:none}body.equipment-only .sheet-heading{background:#202327;color:#f4f6ed;border-radius:0;border-bottom:1px solid #89967e;padding:12px 16px}body.equipment-only .sheet-heading h2{font-size:16px;letter-spacing:0}body.equipment-only .sheet-heading button{color:#f4f6ed;font-size:20px;border:1px solid #6e7c66;border-radius:0;min-height:32px;box-shadow:none;background:none}body.equipment-only .sheet-content{font-size:13px;padding:14px 16px}body.equipment-only .sheet-content label,body.equipment-only .sheet-content legend{font-size:12px}body.equipment-only .sheet-content input:not([type=checkbox]):not([type=radio]):not([type=range]),body.equipment-only .sheet-content textarea{border-radius:0;border:1px solid #b8c2ad;background:#fafbf6;font-size:14px;min-height:42px}body.equipment-only button,body.equipment-only .sheet-content .primary{border-radius:0;background:#f8faf3;color:#34492b;box-shadow:none;font-size:13px;border:1px solid #adbaa0;min-height:42px}body.equipment-only .sheet-content .primary{background:#3e5132;color:#f5f7f0;border-color:#3e5132}body.equipment-only .sheet-content .toggle span{border-radius:0;box-shadow:none;background:#fafbf5;border-color:#b6c3ab;min-height:44px;font-size:13px}body.equipment-only .sheet-content .toggle input:checked+span{background:#d1dfc5;color:#2b4320;border-color:#7f9870;box-shadow:none}body.equipment-only .sheet-content .toggle span[style]{background:var(--size-colour)}body.equipment-only .sheet-content .toggle input:checked+span[style]{background:var(--size-colour);outline:2px solid #496338}body.equipment-only #equipmentForm .entry-row{background:transparent;border-bottom:1px solid #c3cdba;border-radius:0}body.equipment-only #equipmentForm .entry-row.has-entry{background:#e7eddf}body.equipment-only .row-confirm{border-radius:0;background:#d6e1cc;color:#36562a}.equipment-only .tube-grid{gap:6px}.equipment-only .tube-grid .toggle span{font-size:18px!important}
+body.equipment-only dialog{width:100%;max-width:100vw;height:100%;max-height:100dvh;margin:0;border:0}body.equipment-only dialog::backdrop{background:transparent}body.equipment-only .sheet-content{max-height:calc(100dvh - 58px)}
+html.notes-equipment-frame body>header,html.notes-equipment-frame body>#main,html.notes-equipment-frame body>#contextRail,html.notes-equipment-frame body>.bottom-nav{display:none!important}html.notes-equipment-frame body{background:#eff0e8}
+
+/* Latest Pocket controls, with information beside the persistent tablet dial. */
+#contextRail{position:relative}
+#contextRail>.rail-expand{position:absolute;left:0;top:0;width:30px;min-width:30px;height:46px;padding:0;z-index:2;border:0;border-radius:0;background:#e8f0e7;color:#173b28;font-size:24px}
+#contextRail>nav{padding-left:30px}
+body.rail-full,body.live-mode.rail-full{grid-template-columns:minmax(0,1fr)}
+body.rail-full #main{display:none}
+body.rail-full #contextRail{grid-column:1;grid-row:2;width:100%;position:relative;top:auto;bottom:auto}
+.sheet-heading>.sheet-sidebar-arrow{font-size:28px;min-width:40px;padding:0 8px;flex:none}
+.sheet-heading:has(.sheet-sidebar-arrow){gap:10px}.sheet-heading:has(.sheet-sidebar-arrow) h2{flex:1}
+.rail-content .log-filters{gap:6px}.rail-content .log-filters select{min-height:44px;padding:6px 4px;font-size:12px}
+#contextRail>nav button.checklist-attention{background:#f7dda1;color:#573f15;box-shadow:inset 0 0 0 1px #e7bb5b}
+.rail-content .rhythm-snippet{padding:10px}.rail-content .rhythm-snippet blockquote{font-size:17px}
+body.live-mode .timer-panel .previous-shock{top:64px;left:22px;min-height:30px;font-size:12px}
+body.live-mode .drug-grid .drug.fluids h3{font-size:18px}
+.equipment-record-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.equipment-record-actions>.primary{min-height:50px;font-size:16px}
+@media(max-height:720px){body.live-mode .timer-panel .previous-shock{top:53px;left:18px;font-size:11px}body.live-mode .drug-grid .drug.fluids h3{font-size:15px}}
+@media(max-width:700px){#contextRail{position:absolute}body.rail-full #contextRail{position:relative}.equipment-record-actions{grid-template-columns:1fr}}
