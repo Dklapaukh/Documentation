@@ -5,7 +5,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const sections=['History','Assessment','Impression','Vitals & Interventions','Disposition','Output'];
+const sections=['History','Assessment','Impression','Drugs & Interventions','Disposition','Output'];
 const emptyState=()=>({fields:{},arrest:emptyArrestState(),vitalSets:[],careEvents:[],casCall:false,social:[],complaintType:'Medical',complaints:[],guidelines:[],activeGuideline:'',frailty:null,fallsAssessment:Object.fromEntries(FALLS_ASSESSMENT.items.map(f=>[f.id,'Not assessed'])),fallsAssessmentConfirmed:false,treatmentEvents:[],fallsFlags:[],differentials:[],pathways:[],referrals:[],flags:{},edits:{}});
 let state=emptyState(),step=0;
 let guidanceMode='';
@@ -20,7 +20,7 @@ function text(key,label,{short=false,placeholder='',required=false}={}){
 function options(items,current,blank='—'){return `<option value="">${blank}</option>`+items.map(x=>`<option value="${esc(x)}" ${current===x?'selected':''}>${esc(x)}</option>`).join('');}
 function select(key,label,items){return `<label>${label}<select data-field="${key}">${options(items,v(key))}</select></label>`;}
 function checks(items,selected,kind){return `<div class="checks">${items.map(x=>{const id=x.id||x,label=x.label||x;return `<label class="check"><input type="checkbox" data-check="${kind}" value="${esc(id)}" ${selected.includes(id)?'checked':''}>${esc(label)}</label>`;}).join('')}</div>`;}
-function card(title,body,help=''){return `<section class="card"><div class="cardhead"><h2>${title}</h2>${help?`<button class="quiet" data-help="${esc(help)}" aria-label="${esc(title)} guidance">?</button>`:''}</div>${body}</section>`;}
+function card(title,body,help=''){return `<section class="card"><div class="cardhead"><h2>${title}</h2>${help&&!['History','Provisional diagnosis'].includes(title)?`<button class="quiet" data-help="${esc(help)}" aria-label="${esc(title)} guidance">?</button>`:''}</div>${body}</section>`;}
 function isNonTransport(){return ['Not transported — agreed plan','Declined recommended transport'].includes(v('disposition'));}
 function changed(){state.edits={};}
 function scale(){
@@ -181,7 +181,7 @@ function buildNotes(){
  const impression=join([v('objective').trim(),state.vitalSets.length?'Vitals\n'+vitalsNote():'',diagnosis,line('Guidelines used',selectedGuidelines().join('; ')),differential?'Differentials\n'+differential:'',flags.length?'CPG documentation\n'+flags.join('\n'):'',fallsNote(),confirmedFallsAssessmentNote(),state.pathways.length?'Pathway assessments: '+state.pathways.join(', ')+ (v('pathwayDetails').trim()?'\n'+v('pathwayDetails').trim():''):''],'\n\n');
  const referrals=state.referrals.map(id=>{const r=LOCAL.referrals.find(x=>x.id===id);return `${r.label} ${r.tag}`;}).join('; ');
  const unified=typeof combinedClinicalEvents==='function';
- const disposition=join([unified?'':treatmentNote(),(unified?combinedClinicalEvents().length:state.careEvents.length)?'Vitals & Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment and en route',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals requested: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
+ const disposition=join([unified?'':treatmentNote(),careEventsNote().trim()?'Interventions — actions\n'+careEventsNote():'',state.casCall?'CAS Call: Yes':'',line('Treatment and en route',v('treatment')),line('Response',v('response')),line('En route',v('enroute')),v('disposition'),v('handover').trim(),isNonTransport()?join([line('Non-transport rationale',v('nontransportReason')),line('Capacity / understanding',v('capacity')),v('disposition')==='Declined recommended transport'?line('Refusal discussion',v('refusal')):'',line('Safety-netting',v('safety')),line('Follow-up',v('followup')),line('Competency checklist',v('competency')),line('ACS / signatures',v('acs'))],'\n\n'):'',referrals?'Referrals requested: '+referrals+(v('referralDetails').trim()?'\n'+v('referralDetails').trim():''):''],'\n\n');
  return {'History of Incident':history,'Clinical Impression':impression,'Disposition':disposition};
 }
 function outputNotes(){return {...buildNotes(),...state.edits};}

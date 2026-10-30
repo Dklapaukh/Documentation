@@ -1,0 +1,101 @@
+.pilot-source details{margin:8px 0;border-bottom:1px solid var(--border,#d9dedc);padding:8px 0}.pilot-source summary{font-weight:650;cursor:pointer}.pilot-literal{line-height:1.5;padding:8px 2px}.pilot-literal table{border-collapse:collapse;width:100%}.pilot-literal th,.pilot-literal td{border:1px solid #cbd1cf;padding:8px;text-align:left}.pilot-literal img{max-width:100%;height:auto}.pilot-literal a{color:#005b53;text-decoration:underline;cursor:pointer}.pilot-admin{margin:4px 8px;white-space:nowrap}.pilot-literal .flag-check{display:flex;gap:10px;align-items:flex-start;padding:10px;border-bottom:1px solid #d9dedc}.pilot-literal .flag-check input{flex-shrink:0;margin-top:5px}.pilot-source .falls-table.red{border-left:4px solid #b83a35;padding-left:12px}.pilot-source .falls-table.orange{border-left:4px solid #c9802d;padding-left:12px}.pilot-match{background:#fff1b6;outline:2px solid #b98b22}.pilot-source pre{white-space:pre-wrap;overflow-wrap:anywhere}.library-search{display:flex;gap:8px;flex-wrap:wrap}.library-search input{flex:1;min-width:180px}.library-result{display:flex;flex-direction:column;text-align:left;width:100%;margin:6px 0;padding:10px}.library-toolbar{display:flex;gap:8px}.pilot-source .native-cpg .checklist-wrap{display:block}
+/* Reference browser: use the Notes palette and flat, compact controls. */
+.pilot-literal a{color:var(--accent);text-decoration-thickness:1px}
+.pilot-match, .pilot-app-header mark{background:var(--accent-soft);outline-color:var(--accent);color:var(--ink)}
+.pilot-app-header{position:sticky;top:-7px;z-index:3;background:var(--notes-guidance-bg,var(--surface));margin:-7px -2px 16px;padding:6px 2px 10px;border-bottom:1px solid var(--line)}
+.pilot-app-bar{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 16px 0 18px}
+.pilot-app-bar .pilot-icon{flex:0 0 30px;width:30px;height:34px;min-height:34px;border:0;padding:6px}
+.pilot-icon svg,.pilot-admin svg{display:block;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.pilot-brand{display:flex;align-items:baseline;gap:8px;padding:6px 0;border:0;font-size:15px;letter-spacing:-.3px}
+.pilot-brand span{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:0}
+.pilot-coverage{margin-left:auto;color:var(--muted);font-size:9px;white-space:nowrap}
+.pilot-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin:5px 0 10px}
+.pilot-tabs button{flex:1;min-width:0;background:transparent;border:0;border-bottom:2px solid transparent;font-size:11px;font-weight:500;padding:9px 6px;color:var(--muted)}
+.pilot-tabs button[aria-pressed=true]{border-bottom-color:var(--accent);color:var(--ink);font-weight:700}
+.pilot-tabs button:hover{background:var(--accent-soft)}
+.pilot-search{display:flex;gap:5px;align-items:center}.pilot-search input{flex:1;min-width:0;margin:0;font-size:12px;min-height:38px}.pilot-search select{width:105px;flex:0 0 105px;margin:0;min-height:38px;font-size:10px;padding:6px}
+.pilot-app-header [data-pilot-results]:not(:empty){max-height:35vh;overflow:auto;border-top:1px solid var(--line);margin-top:8px}
+.pilot-app-header .library-result{background:var(--surface);border-color:var(--line);white-space:normal;gap:4px;margin:0;border-width:0 0 1px;padding:12px;font-weight:400}
+.pilot-app-header .library-result:hover{background:var(--accent-soft)}
+.pilot-app-header .library-result small{font-size:9px;color:var(--muted);text-transform:uppercase}.pilot-app-header .library-result b{font-size:12px}.pilot-app-header .library-result span{font-size:11px;line-height:1.5}
+.pilot-browser-hint,.pilot-coverage-note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0}
+.pilot-category{margin:16px 0 22px}.pilot-category h2{font-size:10px;letter-spacing:.65px;text-transform:uppercase;color:var(--muted);margin:0;padding:0 0 8px;border-bottom:1px solid var(--line)}
+.pilot-reference-row{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;padding:14px 5px;border:0;border-bottom:1px solid var(--line);white-space:normal;gap:12px;min-height:62px}
+.pilot-reference-row>span:first-child{display:flex;flex-direction:column;gap:4px}.pilot-reference-row strong{font-size:13px;font-weight:600;line-height:1.4}.pilot-reference-row small{font-size:10px;color:var(--muted);font-weight:400}.pilot-reference-row>span:last-child{font-size:24px;color:var(--accent);font-weight:400}.pilot-reference-row:hover{background:var(--accent-soft)}
+.pilot-source>.rowhead{display:flex;align-items:flex-start;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:5px}.pilot-source>.rowhead h2{font-size:17px;line-height:1.35;letter-spacing:-.35px;margin:4px 0;flex:1;min-width:160px}.pilot-source>.rowhead button{font-size:10px}
+.pilot-breadcrumb{font-size:10px;color:var(--muted);margin:4px 0 7px}.pilot-source-links{margin:0 0 12px;color:var(--muted);font-size:10px}.pilot-source-info{margin-top:22px!important}.pilot-source-info p{font-size:11px;line-height:1.5;color:var(--muted)}
+.pilot-admin.quiet{display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:30px;height:30px;min-height:30px;margin:0 4px;padding:5px;border:0;color:var(--accent);background:transparent;position:relative}
+.pilot-admin::before{content:'';position:absolute;inset:-5px}.pilot-admin:hover{background:var(--accent-soft)}.pilot-admin:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.pilot-empty{font-size:12px;padding:12px;color:var(--muted)}
+@media(pointer:coarse){.pilot-admin.quiet{min-width:40px;min-height:40px}.pilot-app-bar .pilot-icon{min-height:40px;width:40px;flex-basis:40px}.pilot-tabs button{min-height:44px}}
+@media(max-width:420px){.pilot-brand span{display:none}.pilot-coverage{font-size:8px}.pilot-search select{flex-basis:90px;width:90px}}
+/* Reference type colours keep labels readable; icons and active rules carry colour. */
+.pilot-tabs [data-pilot-kind=guideline]{--tab-colour:#2e7149;--tab-tint:#eef6f0}
+.pilot-tabs [data-pilot-kind=medicine]{--tab-colour:#286fa4;--tab-tint:#eef5fb}
+.pilot-tabs [data-pilot-kind=checklist]{--tab-colour:#b18a00;--tab-tint:#fff9e1}
+.pilot-tabs button{display:flex;align-items:center;justify-content:center;gap:7px}
+.pilot-tabs button svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:var(--tab-colour);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pilot-tabs button[aria-pressed=true]{border-bottom-color:var(--tab-colour);background:var(--tab-tint);color:var(--ink)}
+.pilot-tabs button:hover{background:var(--tab-tint)}
+@media(max-width:380px){.pilot-tabs button{gap:4px;font-size:10px}.pilot-tabs button svg{width:16px;height:16px;flex-basis:16px}}
+/* Distinct reference-type cards with persistent colour cues. */
+.app-shell .pilot-tabs{display:flex;gap:8px;border:0;margin:8px 0 12px;padding:0}
+.app-shell .pilot-tabs button{border:1px solid var(--line);border-radius:8px;min-height:52px;padding:11px 6px;background:var(--tab-tint);color:var(--ink);font-weight:500;transition:border-color .12s ease,background-color .12s ease}
+.app-shell .pilot-tabs [data-pilot-kind=guideline]{--tab-active:#e2eee5}
+.app-shell .pilot-tabs [data-pilot-kind=medicine]{--tab-active:#e0edf7}
+.app-shell .pilot-tabs [data-pilot-kind=checklist]{--tab-active:#fff1bf}
+.app-shell .pilot-tabs button[aria-pressed=true]{border-color:var(--tab-colour);outline:1px solid var(--tab-colour);outline-offset:-2px;background:var(--tab-active);font-weight:700}
+.app-shell .pilot-tabs button:hover{border-color:var(--tab-colour);background:var(--tab-active)}
+.app-shell .pilot-tabs button:focus-visible{outline:2px solid var(--tab-colour);outline-offset:2px}
+@media(max-width:380px){.app-shell .pilot-tabs{gap:5px}.app-shell .pilot-tabs button{padding:10px 4px}}
+@media(prefers-reduced-motion:reduce){.app-shell .pilot-tabs button{transition:none}}
+/* Keep navigation visible while recording or reading source sections. */
+.pilot-back-row{display:flex;align-items:center;margin-top:8px}
+.pilot-labelled-back{display:inline-flex;align-items:center;gap:5px;min-height:34px;font-size:11px;padding:5px 9px}
+.pilot-labelled-back svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pilot-flat-flags{margin:12px 0 18px!important;padding:0!important;border-left-width:1px!important;overflow:hidden}
+.pilot-flat-flags h3{margin:0;font-size:11px}
+.pilot-flat-flags>.pilot-literal{padding:0}
+.pilot-flat-flags .flag-check{padding:9px 12px;min-height:38px;line-height:1.5;border-bottom:0}
+.pilot-flat-flags>p{font-size:12px;margin:0;padding:9px 12px}
+.pilot-flat-checklist{margin:14px 0}
+.pilot-flat-checklist h4{font-size:13px;line-height:1.5;margin:10px 0}
+.pilot-flat-checklist ul{padding-left:0;margin:8px 0}
+.pilot-flat-checklist li:has(>ul){list-style:none}
+.pilot-check-row{list-style:none;padding:0;margin:0}
+.pilot-check-row>.flag-check{font-size:12px;line-height:1.5;cursor:pointer;margin:0}
+.pilot-log-feedback{font-size:11px;line-height:1.5;border-left:2px solid var(--accent);background:var(--accent-soft);padding:8px 10px;margin:7px 0;list-style:none}
+.pilot-log-feedback>div{display:flex;gap:6px;margin-top:5px}
+.pilot-log-feedback{opacity:1;transition:opacity .2s ease}
+.pilot-log-feedback.pilot-feedback-fading{opacity:0;pointer-events:none}
+.pilot-check-row>.flag-check>span{flex:1;min-width:0}
+.pilot-check-time{flex-shrink:0;align-self:flex-start;margin-top:2px;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.pilot-log-feedback{transition:none}}
+.pilot-log-feedback button{font-size:10px;min-height:30px;padding:4px 8px}
+.pilot-inline-log-editor{display:block;max-width:100%;padding:2px}
+.pilot-inline-log-editor label{display:block;font-size:10px;margin:5px 0}
+.pilot-inline-log-editor input{margin:3px 0 0;font-size:12px;min-height:36px;max-width:100%;width:100%}
+.pilot-inline-dose{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.pilot-inline-log-editor>div:last-child{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+@media(pointer:coarse){.pilot-log-feedback button,.pilot-labelled-back{min-height:40px}}
+/* Source paediatric tables expand in place without a new navigation layer. */
+.paediatric-inline-link{color:var(--accent,#287066);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.paediatric-inline-table{margin:6px 0 10px;padding:8px;border:1px solid #d9e1dd;border-radius:7px;background:#fafcfb;font-size:12px;line-height:1.4;list-style:none}
+.paediatric-inline-table[hidden]{display:none}
+.paediatric-band h4{font-size:12px;margin:8px 0 3px;color:#244e46}
+.paediatric-table-scroll{overflow-x:auto}
+.paediatric-inline-table table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;line-height:1.3}
+.paediatric-inline-table th,.paediatric-inline-table td{padding:4px 3px;vertical-align:top;overflow-wrap:anywhere;border-bottom:1px solid #dfe6e2;text-align:left}
+.paediatric-inline-table th:first-child{width:31%}.paediatric-inline-table th:nth-child(2){width:19%}.paediatric-inline-table th:nth-child(3){width:30%}
+.paediatric-inline-table .dose-table-pick{font:inherit;min-width:0;white-space:normal;padding:3px}
+.paediatric-source-guidance{margin-top:8px}.paediatric-source-guidance summary{font-size:11px;cursor:pointer}
+.paediatric-source-guidance .native-cpg{font-size:12px}.paediatric-inline-table .subtle{font-size:10px;margin-bottom:0}
+
+/* Route cues supplement the unchanged published route labels. */
+.paediatric-band{--route-ink:#244e46;--route-tint:#eef5f1;--route-line:#b5cfc2;border-left:3px solid var(--route-line);padding-left:6px;margin:8px 0}
+.paediatric-band.paediatric-route-iv{--route-ink:#174f83;--route-tint:#eaf3fc;--route-line:#3d7daf}
+.paediatric-band.paediatric-route-im{--route-ink:#754411;--route-tint:#fff2df;--route-line:#b5782c}
+.paediatric-band h4{color:var(--route-ink)}
+#referenceDock .paediatric-band th{color:var(--route-ink);background:var(--route-tint)}
+#referenceDock .paediatric-band .dose-table-pick{color:var(--route-ink);border-color:var(--route-line);background:var(--route-tint)}
+#referenceDock .paediatric-band .dose-table-pick:hover,#referenceDock .paediatric-band .dose-table-pick:focus-visible{background:var(--route-tint);outline:2px solid var(--route-ink);outline-offset:2px}

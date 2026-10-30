@@ -1,0 +1,99 @@
+/* Notes: compact entry, consistent actions, and a workspace-corner sidebar toggle. */
+.workspace-corner{height:0;position:sticky;top:calc(var(--entry-header-height,var(--header-height)) + 10px);z-index:13;pointer-events:none}
+.notes-reference-open .workspace-corner{top:8px}
+#toggleGuidance.workspace-sidebar-toggle{position:absolute;right:0;top:0;pointer-events:auto;display:flex;align-items:center;justify-content:center;width:32px;height:32px;min-height:32px;padding:0;font-size:25px;font-weight:400;line-height:1;border:0;background:var(--surface);color:var(--muted)}
+#toggleGuidance.workspace-sidebar-toggle:hover{background:var(--accent-soft);color:var(--ink)}
+#content>.card:first-child>.cardhead,#content>.toolbar:first-child{padding-right:44px}
+#content>.assessment>.card>.cardhead{padding-right:44px}
+#careModal .care-modal-top{padding-right:52px}
+[data-picker-sidebar]{order:10;margin-left:auto}
+
+/* Related entry actions have one size; the arrest frame keeps its own controls. */
+#inlineCareHost .inline-record-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:8px;margin-top:8px}
+#inlineCareHost .inline-record-actions>button{display:inline-flex;align-items:center;justify-content:center;flex-direction:row;gap:4px;width:auto;min-width:80px;height:40px;min-height:40px;padding:7px 12px;border-radius:var(--notes-corner);font-size:12px;line-height:1.2}
+#inlineCareHost .inline-record-actions>button small{font-size:11px}
+#inlineCareHost .care-modal-top{padding:8px 12px;min-height:0}
+#inlineCareHost .care-modal-body{padding:10px 12px}
+#inlineCareHost .iv-entry .care-time{gap:6px;align-items:center}
+#inlineCareHost .iv-entry .care-time label{font-size:9px}
+#inlineCareHost .iv-entry .care-time input{width:190px;min-height:32px;height:32px;font-size:11px;padding:4px 6px}
+#inlineCareHost .iv-entry .care-time .quiet{height:32px;min-height:32px;padding:4px 8px;font-size:10px}
+#inlineCareHost .iv-entry .entry-mode{font-size:9px}
+.native-iv-entry h3{font-size:14px;margin-bottom:6px}
+.native-iv-choices{padding:6px 0;gap:5px}
+.native-iv-choices legend{font-size:10px;margin-bottom:4px}
+.native-iv-choices button{min-width:52px;min-height:38px;padding:6px 9px;font-size:12px}
+.native-iv-entry>label{margin:8px 0 0}
+
+/* Observation context stays alongside its reading; only the final NEWS is coloured. */
+#careModal.keyboard-vitals .care-modal-body{padding:8px 14px}
+#careModal.keyboard-vitals .care-modal-top{min-height:48px;padding-top:6px;padding-bottom:6px}
+.vitals-mode-toolbar{margin-bottom:6px;gap:8px}
+.vitals-mode-toolbar h2{font-size:16px}
+.vitals-mode-toolbar button{font-size:11px;min-height:32px;padding:5px 9px}
+.vitals-entry-table thead th{padding:5px 6px;font-size:9px}
+.vitals-entry-table thead th:first-child{width:23%}
+.vitals-entry-table thead th:nth-child(2){width:30%}
+.vitals-entry-table thead th:nth-child(3){width:11%}
+.vitals-entry-table tbody th,.vitals-entry-table td{padding:2px 6px}
+.vitals-entry-table tbody th{font-size:13px}
+#careModal.keyboard-vitals .vitals-entry-table input:not([type=checkbox]){font-size:19px;min-height:34px;height:34px;padding:4px 7px}
+#careModal.keyboard-vitals .vitals-entry-table input[type=checkbox]{width:15px;height:15px;min-height:15px;flex:0 0 15px;padding:0;margin:0}
+.vital-reading-pair{display:flex;align-items:center;gap:6px;min-width:0}
+.vital-reading-pair>input{min-width:0;flex:1;width:0}
+.vital-reading-pair>.oxygen-flow-input{flex:0 1 70px}
+.oxygen-flow-input{font-size:9px;margin:0;min-width:0;color:var(--muted)}
+.oxygen-flow-input input{width:100%;min-width:0;margin-top:2px!important}
+.vital-context-toggle{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.vital-context-toggle button{font-size:10px;min-height:32px;padding:5px 7px;white-space:nowrap;background:var(--surface);color:var(--ink)}
+.vitals-entry-table .vital-context-toggle{flex-wrap:nowrap}
+.vitals-entry-table .vital-context-toggle button{width:auto;flex:1;min-width:0}
+#careModal.keyboard-vitals .vital-limit-controls{flex-shrink:0;margin:0;gap:3px}
+#careModal.keyboard-vitals .vital-limit-controls button{min-width:30px;min-height:30px;height:30px;padding:3px 5px;font-size:10px}
+.vital-context-toggle button[aria-pressed=true]{border-color:#77827a;background:#e9eeea;font-weight:650}
+.palpated-toggle{display:flex;align-items:center;gap:5px;font-size:10px;margin:0;color:var(--ink);white-space:nowrap;min-height:32px}
+.palpated-reading{font-size:10px;margin:0;color:var(--muted)}
+.palpated-reading input,.vitals-entry-table input[readonly]{font-size:13px;color:var(--muted);background:#f4f5f4}
+.paper-context-controls{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap;margin-top:5px}
+.paper-context-controls:empty{display:none}
+.paper-context-controls .oxygen-flow-input{width:75px}
+.paper-bp-label{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:10px;min-height:32px;margin-bottom:3px}
+.vitals-entry-table .neutral-vital,.paper-vital.neutral-vital,.vital-reading{background:var(--surface)!important;color:var(--ink)}
+.paper-vital.neutral-vital>.paper-label{background:transparent}
+.vital-record-context{display:block;margin-top:3px;font:10px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted);white-space:normal}
+.vitals-matrix td[data-vitals-key=bp]{font-size:16px;white-space:normal}
+.keyboard-news-result{margin:6px 0 0;padding:4px 0}
+.prototype-context{margin-top:4px}
+.prototype-context>summary{min-height:30px}
+#careModal.keyboard-vitals .care-modal-bottom{min-height:52px;padding-top:6px;padding-bottom:6px}
+
+@media(pointer:coarse){
+ #toggleGuidance.workspace-sidebar-toggle{width:40px;height:40px;min-height:40px}
+ #inlineCareHost .inline-record-actions>button,.native-iv-choices button,.vital-context-toggle button,.palpated-toggle{min-height:44px}
+ #inlineCareHost .inline-record-actions>button{height:44px}
+}
+
+/* GCS components are entered together without leaving the observation sheet. */
+.gcs-quick{min-width:0;padding:2px 0}
+.gcs-quick-heading{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.gcs-quick-heading b{margin-right:auto;font-size:13px}
+#careModal .gcs-quick-heading button{font-size:10px;min-height:28px;padding:3px 7px}
+
+.gcs-word-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start}
+#careModal .gcs-word-choices{display:flex;flex-direction:column;flex-wrap:nowrap;gap:4px;padding:0;border:0;min-width:0}
+#careModal .gcs-word-choices legend{float:none;width:auto;margin:0 0 4px;font-size:12px}
+#careModal .gcs-word-choices button{width:100%;min-width:0;min-height:32px;padding:5px 7px;font-size:12px;text-align:center;border:1px solid #bcc7b4;border-radius:5px;line-height:1.2}
+#careModal .gcs-word-choices button[aria-pressed="true"]{background:#d5e3cb;border-color:#728565;color:#223a19;font-weight:700;box-shadow:inset 0 0 0 1px #728565}
+#careModal .gcs-word-choices button:focus-visible{outline:2px solid #007aff;outline-offset:2px}
+.gcs-word-choices small{font-size:10px;font-weight:400;color:var(--muted);line-height:1.25;padding-top:2px}
+.paper-gcs{grid-column:1/-1}
+@media(pointer:coarse){#careModal .gcs-word-choices button{min-height:44px}}
+
+/* Use available tablet width to keep the GCS buttons beside the numeric readings. */
+#careModal.keyboard-vitals .care-modal-shell{max-width:1100px}
+#careModal.keyboard-vitals .care-modal-body{container-type:inline-size}
+.vitals-entry-layout{display:grid;gap:12px;align-items:start}
+@container(min-width:850px){.vitals-entry-layout{grid-template-columns:minmax(300px,.85fr) minmax(460px,1.2fr);gap:20px}}
+
+#careModal .gcs-word-choices button{display:grid;grid-template-columns:16px 1fr;gap:4px;align-items:center}
+.gcs-choice-score{font-variant-numeric:tabular-nums;font-weight:700;opacity:.8;text-align:left}

@@ -2,7 +2,7 @@
  * Keyboard entry is the default; the original ink sheet remains opt-in.
  * Keep observation values separate from NEWS completeness and UI focus state.
  */
-const VITAL_ENTRY_KEYS=['gcs','rr','spo2','hr','sbp','dbp','temp','bgl'];
+const VITAL_ENTRY_KEYS=['gcs','rr','hr','spo2','sbp','dbp','temp','bgl','etco2','crt'];
 let vitalEntryMode='keyboard',vitalFocusKey='gcs';
 const comboHighlight=new Map();
 
@@ -49,6 +49,7 @@ vitalErrors=function(d){
  const errors=[];
  for(const key of Object.keys(CARE_CONFIG.vitals))if(Number.isNaN(numericVital(d.values[key],key)))errors.push(CARE_CONFIG.vitals[key].label+': enter a valid '+(CARE_CONFIG.vitals[key].step===1?'whole number':'number (one decimal maximum)')+'.');
  const s=numericVital(d.values.sbp,'sbp'),b=numericVital(d.values.dbp,'dbp');
+ if(vitalIsPalpated(d)&&!Number.isFinite(s))errors.push('Enter systolic BP for a palpated reading.');
  if(Number.isFinite(s)&&Number.isFinite(b)&&s<b)errors.push('Systolic BP cannot be lower than diastolic BP.');
  return errors;
 };
@@ -57,9 +58,11 @@ vitalsEditor=function(){
  const paper=paperVitalsEditor();
  if(vitalEntryMode==='touch')return '<div class="vitals-mode-toolbar"><h2>Vitals</h2><button class="quiet" data-vitals-mode="keyboard">Keyboard mode</button></div>'+paper;
  const context=paper.slice(paper.indexOf('<details class="prototype-context">'));
- return `<div class="vitals-mode-toolbar"><h2>Vitals</h2><button class="quiet" data-vitals-mode="touch">Touch-screen mode</button></div><table class="vitals-entry-table"><thead><tr><th>Vital</th><th>Reading</th><th>Unit</th><th><span class="sr-only">GCS components</span></th></tr></thead><tbody>${VITAL_ENTRY_KEYS.map(key=>{
+ return `<div class="vitals-mode-toolbar"><h2>Vitals</h2><button class="quiet" data-vitals-mode="touch">Touch-screen mode</button></div><div class="vitals-entry-layout">${gcsQuickEntry()}<table class="vitals-entry-table"><thead><tr><th>Vital</th><th>Reading</th><th>Unit</th><th><span class="sr-only">GCS components</span></th></tr></thead><tbody>${VITAL_ENTRY_KEYS.map(key=>{
+  if(key==='gcs')return '';
   const meta=CARE_CONFIG.vitals[key];
-  return `<tr data-keyboard-vital="${key}"><th scope="row"><label for="vital-entry-${key}">${meta.label}</label></th><td><input id="vital-entry-${key}" type="text" inputmode="${meta.step===.1?'decimal':'numeric'}" autocomplete="off" enterkeyhint="next" data-vital="${key}" aria-label="${meta.label}" value="${esc(vitalDraft.values[key]??'')}" placeholder="—">${vitalLimitControls(key)}</td><td>${meta.unit}</td><td>${key==='gcs'?'<button class="quiet" data-care-gcs aria-label="GCS components">E / V / M</button>':''}</td></tr>`;
+  const palpated=key==='dbp'&&vitalIsPalpated(vitalDraft);
+  return `<tr data-keyboard-vital="${key}"><th scope="row"><label for="vital-entry-${key}">${meta.label}</label></th><td><div class="vital-reading-pair"><input id="vital-entry-${key}" type="text" inputmode="${meta.step===.1?'decimal':'numeric'}" autocomplete="off" enterkeyhint="next" data-vital="${key}" aria-label="${meta.label}" value="${esc(palpated?'palpated':vitalDraft.values[key]??'')}" ${palpated?'readonly':''} placeholder="—">${key==='spo2'?vitalOxygenFlowInput():''}${vitalLimitControls(key)}</div></td><td>${meta.unit}</td><td class="vital-context-cell">${vitalContextControls(key)}</td></tr>`;
  }).join('')}</tbody></table><div id="newsResult" class="keyboard-news-result" aria-live="polite"></div>${context}`;
 };
 const fastNewsDisplay=updateNewsDisplay;
@@ -67,7 +70,7 @@ updateNewsDisplay=function(){
  fastNewsDisplay();
  if(vitalEntryMode!=='keyboard')return;
  const n=news2(vitalDraft);
- for(const key of VITAL_ENTRY_KEYS){const row=document.querySelector('[data-keyboard-vital="'+key+'"]');if(row)row.className='point-'+(n.points[key==='gcs'?'consciousness':key]??'none');}
+ for(const key of VITAL_ENTRY_KEYS){const row=document.querySelector('[data-keyboard-vital="'+key+'"]');if(row)row.className='neutral-vital';}
  $('newsResult').innerHTML=`<p class="news-total news-${n.band}">${newsLabel(n)}</p>${n.total===null?'<span class="subtle">Missing readings remain unrecorded.</span>':''}`;
 };
 const fastInkInit=initInkFields;
@@ -79,14 +82,14 @@ renderCare=function(keepScroll=false){
  if(careView!=='vitals')return;
  const mode=$('careModal').querySelector('.entry-mode');if(mode)mode.textContent='VITALS';
  if(vitalEntryMode==='keyboard')requestAnimationFrame(()=>{
-  if(careView==='vitals'&&$('careModal').open)$('vital-entry-'+vitalFocusKey)?.focus();
+  if(careView==='vitals'&&$('careModal').open&&!document.activeElement?.matches?.('[data-gcs-word]'))$('vital-entry-'+vitalFocusKey)?.focus();
  });
 };
 
 // A column per observation set; all vital signs stay visible as readable rows.
 recordedVitalsTable=function(){
  const sets=(state.vitalSets||[]).map((e,i)=>({e,i})).sort((a,b)=>new Date(a.e.at)-new Date(b.e.at));
- const rows=[['gcs','GCS','/15'],['rr','RR','/min'],['spo2','SpO₂','%'],['hr','HR','/min'],['bp','BP','mmHg'],['temp','Temp','°C'],['bgl','BGL','mmol/L'],['news','NEWS2','']];
+ const rows=[['gcs','GCS','/15'],['rr','RR','/min'],['hr','HR','/min'],['spo2','SpO₂','%'],['bp','BP','mmHg'],['temp','Temp','°C'],['bgl','BGL','mmol/L'],['etco2','EtCO₂','mmHg'],['crt','CRT','s'],['news','NEWS2','']];
  const reading=v=>v==null||String(v).trim()===''?'—':v;
  const value=(e,key)=>{
   if(key==='gcs')return gcsTotal(e.gcs||{})??(reading(e.values?.gcs)!=='—'?e.values.gcs:Object.values(e.gcs||{}).includes('NT')?'NT':'—');
@@ -94,9 +97,10 @@ recordedVitalsTable=function(){
   if(key==='news')return news2(e).total??'—';
   return reading(e.values?.[key]);
  };
- return `<section class="record-table-section vitals-matrix-section"><h2>Vitals</h2>${sets.length?`<div class="table-scroll"><table class="clinical-table vitals-matrix" style="min-width:${90+sets.length*96}px"><thead><tr><th scope="col">Vital</th>${sets.map(({e})=>`<th scope="col">${esc(compactActionTime(e))}</th>`).join('')}</tr></thead><tbody>${rows.map(([key,label,unit])=>`<tr><th scope="row">${label}<small>${unit}</small></th>${sets.map(({e,i})=>{const n=news2(e),point=n.points[key==='bp'?'sbp':key==='gcs'?'consciousness':key];return `<td data-vitals-column="${i}" data-vitals-key="${key}" tabindex="0" aria-label="${esc(label)} ${esc(value(e,key))}, ${esc(compactActionTime(e))}. Double-tap to edit observation set." class="${key==='news'?'news-'+n.band:'point-'+(point??'none')}" ${key==='news'?`title="${esc(newsLabel(n))}"`:''}>${esc(value(e,key))}</td>`;}).join('')}</tr>`).join('')}</tbody><tfoot><tr><th scope="row"><span class="sr-only">Edit observation set</span></th>${sets.map(({e,i})=>`<td><button class="quiet" data-care-edit="vitals" data-index="${i}" aria-label="Edit vitals at ${esc(compactActionTime(e))}">Edit</button><button class="quiet" data-care-remove="vitals" data-index="${i}" aria-label="Remove vitals at ${esc(compactActionTime(e))}">×</button></td>`).join('')}</tr></tfoot></table></div>`:'<p class="subtle">No readings</p>'}</section>`;
+ const context=(e,key)=>key==='gcs'?(Object.keys(e.gcs||{}).length?['eye','verbal','motor'].map((k,i)=>'EVM'[i]+(e.gcs[k]??'—')).join(' '):String(e.values?.gcs??'').trim()?'Breakdown not recorded':''):key==='spo2'?(e.oxygen==='Air'?'RA':e.oxygen==='Oxygen'?'On O₂'+(e.values?.o2flow!==undefined?' · '+e.values.o2flow+' L/min':''):''):key==='etco2'&&e.values?.etco2!==undefined?e.etco2Method||'':key==='crt'&&e.values?.crt!==undefined?e.crtSite||'':'';
+ return `<section class="record-table-section vitals-matrix-section"><h2>Vitals</h2>${sets.length?`<div class="table-scroll"><table class="clinical-table vitals-matrix" style="min-width:${90+sets.length*96}px"><thead><tr><th scope="col">Vital</th>${sets.map(({e})=>`<th scope="col">${esc(compactActionTime(e))}</th>`).join('')}</tr></thead><tbody>${rows.map(([key,label,unit])=>`<tr><th scope="row">${label}<small>${unit}</small></th>${sets.map(({e,i})=>{const n=news2(e),point=n.points[key==='bp'?'sbp':key==='gcs'?'consciousness':key];return `<td data-vitals-column="${i}" data-vitals-key="${key}" tabindex="0" aria-label="${esc(label)} ${esc(value(e,key))} ${esc(context(e,key))}, ${esc(compactActionTime(e))}. Double-tap to edit observation set." class="${key==='news'?'news-'+n.band:'vital-reading'}" ${key==='news'?`title="${esc(newsLabel(n))}"`:''}>${esc(value(e,key))}${context(e,key)?`<small class="vital-record-context">${esc(context(e,key))}</small>`:''}</td>`;}).join('')}</tr>`).join('')}</tbody><tfoot><tr><th scope="row"><span class="sr-only">Edit observation set</span></th>${sets.map(({e,i})=>`<td><button class="quiet" data-care-edit="vitals" data-index="${i}" aria-label="Edit vitals at ${esc(compactActionTime(e))}">Edit</button><button class="quiet" data-care-remove="vitals" data-index="${i}" aria-label="Remove vitals at ${esc(compactActionTime(e))}">×</button></td>`).join('')}</tr></tfoot></table></div>`:'<p class="subtle">No readings</p>'}</section>`;
 };
-recordedTables=function(){return recordedVitalsTable()+recordedActionTable();};
+recordedTables=function(){return recordRemovalMarkup()+recordedVitalsTable()+recordedActionTable();};
 const fastCareScreen=careScreen;
 careScreen=function(){return fastCareScreen().replace('Recorded care ·','Entries ·');};
 
@@ -105,15 +109,48 @@ const fastOpenReference=openReference;
 openReference=function(pane){fastOpenReference(pane);$('referenceDock').dataset.pane=pane;};
 
 function moveVitalFocus(input,direction){
- const fields=VITAL_ENTRY_KEYS.map(key=>$('vital-entry-'+key)).filter(Boolean),index=fields.indexOf(input),next=fields[index+direction];
- if(next){next.focus();next.select();return true;}
+ const keys=VITAL_ENTRY_KEYS.flatMap(key=>key==='spo2'&&vitalDraft?.oxygen==='Oxygen'?[key,'o2flow']:[key]);
+ const fields=keys.map(key=>$('vital-entry-'+key)).filter(field=>field&&!field.readOnly&&!field.disabled),index=fields.indexOf(input),next=fields[index+direction];
+ if(next){next.focus();next.select?.();return true;}
  if(direction>0){$('careModal').querySelector('[data-care-save]')?.focus();return true;}
  return false;
 }
-document.addEventListener('focusin',e=>{if(e.target.dataset?.vital)vitalFocusKey=e.target.dataset.vital;});
+// Keep focus changes synchronous with the tap/key so mobile keyboards can open.
+function focusGcsColumn(key){
+ const root=$('careModal');
+ const button=root.querySelector('[data-gcs-word="'+key+'"][aria-pressed="true"]')||root.querySelector('[data-gcs-word="'+key+'"]');
+ vitalFocusKey='gcs';button?.focus();
+}
+function chooseGcsResponse(key,value){
+ if(!setQuickGcs(key,value))return false;
+ if(gcsComplete(vitalDraft.gcs)){
+  vitalFocusKey='rr';
+  const next=$('careModal').querySelector('[data-vital="rr"]');
+  next?.focus();next?.select?.();
+ }else{
+  const next=['motor','verbal','eye'].find(k=>!CARE_CONFIG.gcs[k].options.some(x=>x[0]===vitalDraft.gcs?.[k]));
+  focusGcsColumn(next);
+ }
+ return true;
+}
+function openVitalsShortcut(){
+ if(typeof notesTutorialDialog!=='undefined'&&notesTutorialDialog?.open)closeNotesTutorial();
+ for(const id of ['wheelModal','repeatWheelModal'])if($(id)?.open)$(id).close();
+ if(careView!=='vitals'||!$('careModal').open)openCare('vitals');
+ const next=['motor','verbal','eye'].find(k=>!CARE_CONFIG.gcs[k].options.some(x=>x[0]===vitalDraft.gcs?.[k]));
+ if(next)focusGcsColumn(next);else{vitalFocusKey='rr';$('careModal').querySelector('[data-vital="rr"]')?.focus();}
+}
+document.addEventListener('focusin',e=>{if(e.target.dataset?.vital)vitalFocusKey=e.target.dataset.vital;else if(e.target.dataset?.gcsWord)vitalFocusKey='gcs';});
 document.addEventListener('keydown',e=>{
  if(e.isComposing){if(comboFor(e.target))e.stopImmediatePropagation();return;}
+ if(e.ctrlKey&&!e.altKey&&!e.metaKey&&!e.shiftKey&&String(e.key).toLowerCase()==='v'){
+  e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)openVitalsShortcut();return;
+ }
  const input=e.target,combo=comboFor(input);
+ const gcsButton=input.closest?.('[data-gcs-word]');
+ if(careView==='vitals'&&$('careModal').open&&gcsButton&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&/^[0-9]$/.test(e.key)){
+  e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)chooseGcsResponse(gcsButton.dataset.gcsWord,e.key);return;
+ }
  if(combo){
   if(['ArrowDown','ArrowUp'].includes(e.key)){
    e.preventDefault();e.stopImmediatePropagation();
@@ -209,6 +246,7 @@ let gcsAutoReturn=false;
 const entryCareRender=renderCare;
 renderCare=function(keepScroll=false){
  entryCareRender(keepScroll);
+ $('careModal').classList.toggle('iv-entry',careView==='intervention'&&eventDraft?.pocketProcedure==='iv');
  if(careView==='gcs'){
   gcsAutoReturn=!['eye','verbal','motor'].every(key=>gcsDraft[key]!==undefined);
   const top=$('careModal').querySelector('.care-modal-top');
@@ -220,7 +258,7 @@ renderCare=function(keepScroll=false){
 };
 function acceptGcsAndReturn(){
  vitalDraft.gcs=cloneCare(gcsDraft);vitalDraft.values.gcs=gcsTotal(gcsDraft)??'';
- if(vitalDraft.ink){vitalDraft.ink.gcs=[];vitalDraft.inkSource.gcs='components';vitalDraft.inkPending.gcs=false;}
+ if(vitalDraft.ink){vitalDraft.inkSource??={};vitalDraft.inkPending??={};vitalDraft.ink.gcs=[];vitalDraft.inkSource.gcs='components';vitalDraft.inkPending.gcs=false;}
  careView='vitals';vitalFocusKey='gcs';renderCare();
 }
 document.addEventListener('change',e=>{

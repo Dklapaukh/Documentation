@@ -18,12 +18,15 @@ const CARE_CONFIG = {
  vitals:{
   gcs:{label:'GCS',unit:'/15',min:3,max:15,step:1,start:15},
   rr:{label:'RR',unit:'/min',min:0,max:100,step:1,start:16},
-  spo2:{label:'SpO₂',unit:'%',min:0,max:100,step:1,start:98},
   hr:{label:'HR',unit:'/min',min:0,max:300,step:1,start:80},
+  spo2:{label:'SpO₂',unit:'%',min:0,max:100,step:1,start:98},
+  o2flow:{label:'O₂ flow',unit:'L/min',min:0,max:999,step:.1,start:0},
   sbp:{label:'Systolic BP',unit:'mmHg',min:0,max:350,step:1,start:120},
   dbp:{label:'Diastolic BP',unit:'mmHg',min:0,max:250,step:1,start:80},
   temp:{label:'Temp',unit:'°C',min:0,max:50,step:.1,start:37},
-  bgl:{label:'BGL',unit:'mmol/L',min:0,max:60,step:.1,start:5}
+  bgl:{label:'BGL',unit:'mmol/L',min:0,max:60,step:.1,start:5},
+  etco2:{label:'EtCO₂',unit:'mmHg',min:0,max:999,step:.1,start:0},
+  crt:{label:'CRT',unit:'s',min:0,max:999,step:.1,start:0}
  },
  gcs:{
   eye:{label:'Eyes',options:[[4,'Spontaneous','Eyes open without a stimulus'],[3,'To sound','Opens after a spoken or shouted request'],[2,'To pressure','Opens after fingertip pressure'],[1,'None','No eye opening; no interfering factor']]},

@@ -1,4 +1,4 @@
-/* Vitals & Interventions — plain JavaScript, no dependencies.
+/* Interventions — plain JavaScript, no dependencies.
  * Reference calculations are pure functions. Only explicit Save / Record actions
  * write patient entries. Draft modal values never enter generated notes.
  */
@@ -12,6 +12,7 @@ function vitalLimitControls(key){return ['temp','bgl'].includes(key)?`<span clas
 function numericVital(raw,key){
  if(vitalLimitValue(raw,key))return null;
  const s=String(raw??'').trim().replace(',','.');
+ if(key==='dbp'&&s.toLowerCase()==='palpated')return null;
  if(!s)return null;
  const meta=CARE_CONFIG.vitals[key];
  if(!meta||!/^\d+(\.\d+)?$/.test(s))return NaN;
@@ -20,11 +21,52 @@ function numericVital(raw,key){
 }
 function gcsTotal(g){return ['eye','verbal','motor'].every(k=>Number.isInteger(g[k])&&CARE_CONFIG.gcs[k].options.some(x=>x[0]===g[k]))?g.eye+g.verbal+g.motor:null;}
 function gcsText(g){const total=gcsTotal(g),components=['eye','verbal','motor'].map((k,i)=>'EVM'[i]+(g[k]??'not assessed')).join(' ');return Object.keys(g).length?(total===null?'GCS '+components:'GCS '+total+' ('+components+')'):'';}
+function gcsComplete(g={}){return ['eye','verbal','motor'].every(k=>CARE_CONFIG.gcs[k].options.some(x=>x[0]===g[k]));}
+function gcsEntryErrors(d){return (Object.keys(d.gcs||{}).length||String(d.values.gcs??'').trim())&&!gcsComplete(d.gcs)?['GCS: select Motor, Voice and Eyes.']:[];}
+// Short display labels annotate the existing response scores/criteria.
+const GCS_WORDS={motor:['Obeys','Localises','Normal','Abnormal','Extends','None'],verbal:['Orientated','Confused','Words','Sounds','None'],eye:['Spontaneous','Sound','Pressure','None']};
+function gcsQuickEntry(){return `<div class="gcs-quick"><div class="gcs-quick-heading"><b>GCS <span id="gcsQuickTotal">${gcsTotal(vitalDraft.gcs||{})??'—'}</span></b><button type="button" class="quiet" data-gcs-clear>Clear GCS</button></div><div class="gcs-word-columns">${['motor','verbal','eye'].map((key,i)=>{const g=CARE_CONFIG.gcs[key],label=['Motor','Voice','Eyes'][i];return `<fieldset class="native-iv-choices gcs-word-choices"><legend>${label}</legend>${g.options.map(([score,title,description],j)=>`<button type="button" class="quiet" ${i===0&&j===0?'id="vital-entry-gcs"':''} data-gcs-word="${key}" data-gcs-score="${score}" aria-label="${label} ${score} · ${esc(title)}" aria-pressed="${vitalDraft.gcs?.[key]===score}" title="${esc(description)}"><span class="gcs-choice-score" aria-hidden="true">${score}</span><span>${GCS_WORDS[key][j]}</span></button>`).join('')}<small id="gcs-hint-${key}">${esc(g.options.find(x=>x[0]===vitalDraft.gcs?.[key])?.[2]||(key==='motor'?'Normal / abnormal refer to flexion':'Best observed response'))}</small></fieldset>`;}).join('')}</div></div>`;}
+function setQuickGcs(key,value){
+ if(!vitalDraft||!CARE_CONFIG.gcs[key]||!(value===''||CARE_CONFIG.gcs[key].options.some(x=>String(x[0])===value)))return false;
+ vitalDraft.gcs??={};if(value==='')delete vitalDraft.gcs[key];else vitalDraft.gcs[key]=Number(value);
+ vitalDraft.values.gcs=gcsTotal(vitalDraft.gcs)??'';
+ if(vitalDraft.ink){vitalDraft.inkPending??={};vitalDraft.inkRevision??={};vitalDraft.ink.gcs=[];vitalDraft.inkPending.gcs=false;vitalDraft.inkRevision.gcs=(vitalDraft.inkRevision.gcs||0)+1;}
+ const hint=$('gcs-hint-'+key);if(hint)hint.textContent=CARE_CONFIG.gcs[key].options.find(x=>x[0]===Number(value))?.[2]||(key==='motor'?'Normal / abnormal refer to flexion':'Best observed response');
+ document.querySelectorAll('[data-gcs-word="'+key+'"]').forEach(button=>button.setAttribute('aria-pressed',String(vitalDraft.gcs[key]===Number(button.dataset.gcsScore))));
+ if($('gcsQuickTotal'))$('gcsQuickTotal').textContent=gcsTotal(vitalDraft.gcs)??'—';updateNewsDisplay();return true;
+}
+function vitalIsPalpated(d){return d.bpPalpated===true||String(d.values?.dbp||'').toLowerCase()==='palpated';}
+function vitalChoiceButtons(key,choices,current){return `<div class="vital-context-toggle" role="group" aria-label="${key==='oxygen'?'Air or oxygen':key==='etco2Method'?'EtCO₂ measurement method':'CRT site'}">${choices.map(([value,label])=>`<button type="button" class="quiet" data-vital-context="${key}" data-context-value="${value}" aria-pressed="${current===value}">${label}</button>`).join('')}</div>`;}
+function vitalPalpatedControl(){return `<label class="palpated-toggle"><input type="checkbox" data-vital-palpated ${vitalIsPalpated(vitalDraft)?'checked':''}>Palpated</label>`;}
+function vitalContextControls(key){
+ if(key==='spo2')return vitalChoiceButtons('oxygen',[['Air','RA'],['Oxygen','On O₂']],vitalDraft.oxygen);
+ if(key==='sbp')return vitalPalpatedControl();
+ if(key==='etco2')return vitalChoiceButtons('etco2Method',[['Nasal','Nasal'],['Inline','Inline']],vitalDraft.etco2Method);
+ if(key==='crt')return vitalChoiceButtons('crtSite',[['Peripheral','Peripheral'],['Central','Central']],vitalDraft.crtSite);
+ return '';
+}
+function vitalOxygenFlowInput(){return vitalDraft.oxygen==='Oxygen'?`<label class="oxygen-flow-input">O₂ L/min<input id="vital-entry-o2flow" type="text" inputmode="decimal" autocomplete="off" data-vital="o2flow" aria-label="Oxygen flow L/min" value="${esc(vitalDraft.values.o2flow??'')}" placeholder="—"></label>`:'';}
+function setVitalContext(key,value){
+ const allowed={oxygen:['Air','Oxygen'],etco2Method:['Nasal','Inline'],crtSite:['Peripheral','Central']};if(!vitalDraft||!allowed[key]?.includes(value))return false;
+ if(key==='oxygen'){
+  if(value==='Air'){vitalDraft.oxygenFlowDraft=vitalDraft.values.o2flow;delete vitalDraft.values.o2flow;}
+  else if(vitalDraft.values.o2flow===undefined&&vitalDraft.oxygenFlowDraft!==undefined)vitalDraft.values.o2flow=vitalDraft.oxygenFlowDraft;
+  vitalDraft.assumptions=(vitalDraft.assumptions||[]).filter(x=>x!=='Room air');
+ }
+ vitalDraft[key]=value;renderCare(true);if(key==='oxygen'&&value==='Oxygen')requestAnimationFrame(()=>$('vital-entry-o2flow')?.focus());return true;
+}
+function setVitalPalpated(checked){
+ if(!vitalDraft)return;vitalDraft.bpPalpated=checked;vitalDraft.values.dbp=checked?'palpated':'';
+ if(vitalDraft.ink){vitalDraft.inkPending??={};vitalDraft.inkSource??={};vitalDraft.inkRevision??={};vitalDraft.ink.dbp=[];vitalDraft.inkPending.dbp=false;vitalDraft.inkSource.dbp='corrected';vitalDraft.inkRevision.dbp=(vitalDraft.inkRevision.dbp||0)+1;}
+ renderCare(true);
+}
+function vitalRecordedParts(e){return Object.entries(CARE_CONFIG.vitals).filter(([k])=>String(e.values[k]??'').trim()&&!(k==='gcs'&&Object.keys(e.gcs||{}).length)&&!(k==='dbp'&&vitalIsPalpated(e))&&!(k==='o2flow'&&e.oxygen!=='Oxygen')).map(([k,m])=>m.label+' '+e.values[k]+' '+m.unit+(k==='sbp'&&vitalIsPalpated(e)?' (palpated)':k==='etco2'&&e.etco2Method?' ('+e.etco2Method.toLowerCase()+')':k==='crt'&&e.crtSite?' ('+e.crtSite.toLowerCase()+')':''));}
 function vitalErrors(d){
  const errors=[];
  for(const key of Object.keys(CARE_CONFIG.vitals))if(Number.isNaN(numericVital(d.values[key],key)))errors.push(CARE_CONFIG.vitals[key].label+': enter a valid '+(CARE_CONFIG.vitals[key].step===1?'whole number':'number (one decimal maximum)')+'.');
  const s=numericVital(d.values.sbp,'sbp'),b=numericVital(d.values.dbp,'dbp');
- if((s===null)!==(b===null))errors.push('Enter both systolic and diastolic BP.');
+ if(vitalIsPalpated(d)&&!Number.isFinite(s))errors.push('Enter systolic BP for a palpated reading.');
+ if(!vitalIsPalpated(d)&&(s===null)!==(b===null))errors.push('Enter both systolic and diastolic BP.');
  if(Number.isFinite(s)&&Number.isFinite(b)&&s<b)errors.push('Systolic BP cannot be lower than diastolic BP.');
  return errors;
 }
@@ -65,18 +107,19 @@ function legacyGuidelineUsedPanel(){
  return `<section class="diagnosis-panel guideline-treatment"><div class="rowhead"><h3>${esc(v('guidelineUsed'))} · Treatment</h3><a href="${g.url}" target="_blank" rel="noopener noreferrer">${g.code} ↗</a></div><ul>${g.treatment.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p class="subtle">Source checked 25 Oct 2026 · reference only.</p></section>`;
 }
 function careScreen(){
- return `<div class="toolbar"><h1>Vitals &amp; Interventions</h1></div><div class="care-actions"><button class="iv-access-card" data-notes-equipment="iv">+ Add IV access</button><button data-care-open="drug">+ Add drug</button><button data-care-open="intervention">+ Add intervention</button><button data-care-open="procedure">+ Add procedure</button></div>${careTimeline()}`;
+ return `<div class="toolbar"><h1>Interventions</h1></div><div class="care-actions"><button class="iv-access-card" data-notes-equipment="iv">+ Add IV access</button><button data-care-open="drug">+ Add drug</button><button data-care-open="intervention">+ Add intervention</button><button data-care-open="procedure">+ Add procedure</button></div>${careTimeline()}`;
 }
 function careTimeline(){
  const entries=[...state.vitalSets.map((e,i)=>({e,i,kind:'vitals'})),...state.careEvents.map((e,i)=>({e,i,kind:e.kind}))].sort((a,b)=>new Date(a.e.at)-new Date(b.e.at));
  return entries.length?`<div class="care-timeline">${entries.map(({e,i,kind})=>`<section class="care-record"><div class="rowhead"><h3>${esc(eventTime(e))} · ${kind==='vitals'?'Vitals':esc(e.procedure?e.procedure+' · '+e.name:e.name)}</h3><div><button class="quiet" data-care-edit="${kind==='vitals'?'vitals':'event'}" data-index="${i}">Edit</button><button class="quiet" data-care-remove="${kind==='vitals'?'vitals':'event'}" data-index="${i}" aria-label="Remove ${kind==='vitals'?'vitals':esc(e.name)}">✕</button></div></div>${kind==='vitals'?vitalSummary(e):`<p>${esc(drugDetails(e))}</p>`}</section>`).join('')}</div>`:'<p class="subtle">No entries.</p>';
 }
 function drugDetails(e){return e.kind==='drug'?`${e.dose.trim()?e.dose+' '+e.unit:'Dose not recorded'} · ${e.route||'route not recorded'}${e.details?' · '+e.details:''}`:(e.details||'');}
-function vitalSummary(e){const n=news2(e);return `<div class="vital-summary">${gcsText(e.gcs)?`<span>${esc(gcsText(e.gcs))}</span>`:''}${Object.entries(CARE_CONFIG.vitals).filter(([k])=>e.values[k]!==undefined&&e.values[k]!==''&&!(k==='gcs'&&Object.keys(e.gcs).length)).map(([k,m])=>`<span class="news-point point-${n.points[k]??'none'}">${m.label} ${esc(e.values[k])} ${m.unit}${n.points[k]!=null?' · '+n.points[k]+' pt':''}</span>`).join('')}<span class="news-total news-${n.band}">${newsLabel(n)}</span></div>`;}
+function vitalSummary(e){const n=news2(e);return `<div class="vital-summary">${gcsText(e.gcs)?`<span>${esc(gcsText(e.gcs))}</span>`:''}${vitalRecordedParts(e).map(text=>`<span class="vital-reading">${esc(text)}</span>`).join('')}<span class="news-total news-${n.band}">${newsLabel(n)}</span></div>`;}
 function vitalsNote(){return state.vitalSets.slice().sort((a,b)=>new Date(a.at)-new Date(b.at)).map(e=>{
- const parts=[gcsText(e.gcs),...Object.entries(CARE_CONFIG.vitals).filter(([k])=>String(e.values[k]??'').trim()&&!(k==='gcs'&&Object.keys(e.gcs).length)).map(([k,m])=>m.label+' '+e.values[k]+' '+m.unit),e.consciousness==='From GCS'?'NEWS consciousness: inferred from GCS '+(news2(e).gcsBasis??'not recorded')+' (prototype proxy)':e.consciousness?'ACVPU: '+e.consciousness:'',e.oxygen?'Air/oxygen: '+e.oxygen:'','SpO₂ scale '+e.scale+(e.scale==='2'?(e.scale2Confirmed?' (clinician confirmed)':' (authorisation not confirmed)'):''),newsLabel(news2(e)),e.assumptions?.length?'Assumed context: '+e.assumptions.join(', '):''];
+ const parts=[gcsText(e.gcs||{}),...vitalRecordedParts(e),e.consciousness==='From GCS'?'NEWS consciousness: inferred from GCS '+(news2(e).gcsBasis??'not recorded')+' (prototype proxy)':e.consciousness?'ACVPU: '+e.consciousness:'',e.oxygen?'Air/oxygen: '+e.oxygen:'','SpO₂ scale '+e.scale+(e.scale==='2'?(e.scale2Confirmed?' (clinician confirmed)':' (authorisation not confirmed)'):''),newsLabel(news2(e)),e.assumptions?.length?'Assumed context: '+e.assumptions.join(', '):''];
  return eventTime(e)+' — '+parts.filter(Boolean).join('; ');
  }).join('\n');}
+
 function careEventsNote(){return state.careEvents.slice().sort((a,b)=>new Date(a.at)-new Date(b.at)).map(e=>eventTime(e)+' — '+(e.procedure?e.procedure+' · ':'')+e.name+(e.kind==='drug'?' — '+drugDetails(e):e.details?' — '+e.details:'')).join('\n');}
 function freshCareTime(){const d=new Date();d.setSeconds(0,0);return {at:d.toISOString(),local:localDateTime(d),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};}
 function careError(message){$('careError').textContent=message;$('careError').hidden=!message;}
@@ -88,10 +131,10 @@ function stashCareDraft(){
  pendingCare[currentCareKey()]=cloneCare({view:careView,vitalDraft,gcsDraft,eventDraft,procedureDraft});$('careModal').close();
 }
 function clearCareDrafts(){pendingCare={};vitalDraft=null;gcsDraft=null;eventDraft=null;procedureDraft=null;if($('careModal').open)$('careModal').close();}
-function hasUnsavedCare(){return Object.keys(pendingCare).length>0||($('careModal').open&&!!(careView==='vitals'||careView==='gcs'?Object.values(vitalDraft?.values||{}).some(x=>String(x).trim())||Object.values(vitalDraft?.ink||{}).some(x=>x.length):eventDraft?.name?.trim()||eventDraft?.details?.trim()));}
+function hasUnsavedCare(){return Object.keys(pendingCare).length>0||($('careModal').open&&!!(careView==='vitals'||careView==='gcs'?Object.values(vitalDraft?.values||{}).some(x=>String(x).trim())||Object.keys(vitalDraft?.gcs||{}).length>0||Object.values(vitalDraft?.ink||{}).some(x=>x.length):eventDraft?.name?.trim()||eventDraft?.details?.trim()));}
 function openCare(kind,index=null){
  const pending=pendingCare[careDraftKey(kind,index)];
- if(pending){({vitalDraft,gcsDraft,eventDraft,procedureDraft}=cloneCare(pending));careView=pending.view;renderCare();$('careModal').show();$('careModal').focus();return;}
+ if(pending){({vitalDraft,gcsDraft,eventDraft,procedureDraft}=cloneCare(pending));careView=pending.view==='gcs'?'vitals':pending.view;renderCare();$('careModal').show();$('careModal').focus();return;}
  if(kind==='vitals')vitalDraft=index===null?{...freshCareTime(),values:{},gcs:{},oxygen:'Air',consciousness:'From GCS',scale:'1',scale2Confirmed:false,eligibility:'Adult ≥16, not pregnant',assumptions:['Adult ≥16, not pregnant','Room air','SpO₂ scale 1'],index:null}: {...cloneCare(state.vitalSets[index]),index};
  else if(kind==='procedure') {procedureDraft={procedure:'RSI',weight:'',category:'',age:''};eventDraft={...freshCareTime(),name:'',dose:'',unit:'',route:'',details:'',kind:'drug',index:null};}
  else eventDraft=index===null?{...freshCareTime(),name:'',dose:'',unit:'',route:'',details:'',kind:kind==='intervention'?'intervention':'drug',index:null}:{...cloneCare(state.careEvents[index]),index};
@@ -110,20 +153,21 @@ function renderCare(keepScroll=false){
 }
 function vitalInput(key){const m=CARE_CONFIG.vitals[key];return `<label>${m.label} <small>${m.unit}</small><input type="text" inputmode="${m.step===1?'numeric':'decimal'}" autocomplete="off" data-vital="${key}" aria-label="${m.label}" placeholder="Type / tablet handwriting" value="${esc(vitalDraft.values[key]??'')}"></label>`;}
 function vitalsEditor(){
- const tile=(key)=>{const m=CARE_CONFIG.vitals[key];return `<section class="paper-vital" data-vital-tile="${key}"><div class="paper-label"><h3>${m.label}</h3><span>${m.unit}</span>${key==='gcs'?'<button class="quiet" data-care-gcs>E / V / M ↗</button>':`<button class="quiet" data-care-wheel="${key}">Wheel ↗</button>`}</div>${vitalLimitControls(key)}${inkTile(key,m.label,m.unit)}<small data-vital-score="${key}"></small></section>`;};
- return `<div class="paper-heading"><b>Write directly on the sheet</b><span>Separate digits · review the reading below each space</span></div><div class="paper-vitals-grid">${['gcs','rr','spo2','hr'].map(tile).join('')}<section class="paper-vital paper-bp" data-vital-tile="bp"><div class="paper-label"><h3>BP</h3><span>mmHg</span><button class="quiet" data-care-wheel="bp">Two wheels ↗</button></div><div class="paper-bp-halves"><div>${inkTile('sbp','Systolic BP')}</div><div>${inkTile('dbp','Diastolic BP')}</div></div><small data-vital-score="bp"></small></section>${['temp','bgl'].map(tile).join('')}</div><div id="newsResult" class="paper-news-result" aria-live="polite"></div><details class="prototype-context"><summary>Prototype context · adult / room air / LOC from GCS · edit</summary><p>Defaults are assumptions, not observations. GCS 15 maps to NEWS consciousness 0; GCS 3–14 maps to 3. This is a prototype proxy, not an AVPU assessment.</p><div class="grid"><label>Applies to patient<select data-news="eligibility">${options(['Adult ≥16, not pregnant','Not applicable'],vitalDraft.eligibility,'Not confirmed')}</select></label><label>Air or oxygen?<select data-news="oxygen">${options(['Air','Oxygen'],vitalDraft.oxygen,'Not recorded')}</select></label><label>NEWS consciousness<select data-news="consciousness">${options(['From GCS','Alert','New confusion','Voice','Pain','Unresponsive'],vitalDraft.consciousness,'Not assessed')}</select></label><label>SpO₂ scale<select data-news="scale"><option value="1" ${vitalDraft.scale==='1'?'selected':''}>1 · standard</option><option value="2" ${vitalDraft.scale==='2'?'selected':''}>2 · authorised 88–92% target</option></select></label></div><label class="check" id="scale2Confirmation" ${vitalDraft.scale==='2'?'':'hidden'}><input type="checkbox" data-news-confirm ${vitalDraft.scale2Confirmed?'checked':''}>Scale 2 authorised for confirmed hypercapnic respiratory failure</label><a href="${CARE_CONFIG.newsChart}" target="_blank" rel="noopener noreferrer">RCP scoring chart ↗</a> · <a href="ink-model-LICENSE.txt" target="_blank" rel="noopener noreferrer">Local handwriting model / credits ↗</a><p>${CARE_CONFIG.newsCredit}</p></details>`;
+ const tile=key=>{const m=CARE_CONFIG.vitals[key],extra=['etco2','crt'].includes(key);return `<section class="paper-vital" data-vital-tile="${key}"><div class="paper-label"><h3>${m.label}</h3><span>${m.unit}</span>${key==='gcs'?'<button class="quiet" data-care-gcs>E / V / M ↗</button>':extra?'':`<button class="quiet" data-care-wheel="${key}">Wheel ↗</button>`}</div>${vitalLimitControls(key)}${inkTile(key,m.label,m.unit)}<div class="paper-context-controls">${vitalContextControls(key)}${key==='spo2'?vitalOxygenFlowInput():''}</div></section>`;};
+ return `<div class="paper-heading"><b>Write directly on the sheet</b><span>Review recognised readings before saving</span></div><div class="paper-vitals-grid"><section class="paper-vital paper-gcs">${gcsQuickEntry()}</section>${['rr','hr','spo2'].map(tile).join('')}<section class="paper-vital paper-bp" data-vital-tile="bp"><div class="paper-label"><h3>BP</h3><span>mmHg</span><button class="quiet" data-care-wheel="bp">Two wheels ↗</button></div><div class="paper-bp-halves"><div><div class="paper-bp-label">Systolic BP ${vitalPalpatedControl()}</div>${inkTile('sbp','Systolic BP')}</div><div><div class="paper-bp-label">Diastolic BP</div>${vitalIsPalpated(vitalDraft)?'<label class="palpated-reading">Diastolic BP<input type="text" data-vital="dbp" aria-label="Diastolic BP" value="palpated" readonly></label>':inkTile('dbp','Diastolic BP')}</div></div></section>${['temp','bgl','etco2','crt'].map(tile).join('')}</div><div id="newsResult" class="paper-news-result" aria-live="polite"></div><details class="prototype-context"><summary>NEWS context · review</summary><p>Defaults are assumptions, not observations. GCS 15 maps to NEWS consciousness 0; GCS 3–14 maps to 3. This is a prototype proxy, not an AVPU assessment.</p><div class="grid"><label>Applies to patient<select data-news="eligibility">${options(['Adult ≥16, not pregnant','Not applicable'],vitalDraft.eligibility,'Not confirmed')}</select></label><label>NEWS consciousness<select data-news="consciousness">${options(['From GCS','Alert','New confusion','Voice','Pain','Unresponsive'],vitalDraft.consciousness,'Not assessed')}</select></label><label>SpO₂ scale<select data-news="scale"><option value="1" ${vitalDraft.scale==='1'?'selected':''}>1 · standard</option><option value="2" ${vitalDraft.scale==='2'?'selected':''}>2 · authorised 88–92% target</option></select></label></div><label class="check" id="scale2Confirmation" ${vitalDraft.scale==='2'?'':'hidden'}><input type="checkbox" data-news-confirm ${vitalDraft.scale2Confirmed?'checked':''}>Scale 2 authorised for confirmed hypercapnic respiratory failure</label><a href="${CARE_CONFIG.newsChart}" target="_blank" rel="noopener noreferrer">RCP scoring chart ↗</a> · <a href="ink-model-LICENSE.txt" target="_blank" rel="noopener noreferrer">Local handwriting model / credits ↗</a><p>${CARE_CONFIG.newsCredit}</p></details>`;
 }
+
 function updateNewsDisplay(){
  const n=news2(vitalDraft);
  for(const key of ['gcs','rr','spo2','hr','bp','temp','bgl']){
   const points=n.points[key==='bp'?'sbp':key==='gcs'?'consciousness':key],tile=document.querySelector('[data-vital-tile="'+key+'"]'),label=document.querySelector('[data-vital-score="'+key+'"]');
-  if(tile)tile.className='paper-vital '+(key==='bp'?'paper-bp ':'')+'point-'+(points??'none');if(label)label.textContent=points==null?(key==='bgl'?'Not scored':'Not scored / not recorded'):(key==='gcs'?'NEWS consciousness: ':'NEWS2 component: ')+points;
+  if(tile)tile.className='paper-vital '+(key==='bp'?'paper-bp ':'')+'neutral-vital';if(label)label.textContent=points==null?(key==='bgl'?'Not scored':'Not scored / not recorded'):(key==='gcs'?'NEWS consciousness: ':'NEWS2 component: ')+points;
  }
  $('newsResult').innerHTML=`<p class="news-total news-${n.band}">${newsLabel(n)}</p><p class="subtle">${n.total===null?'Complete the required observations, oxygen status, consciousness and applicability.':'RR '+n.points.rr+' · SpO₂ '+n.points.spo2+' · SBP '+n.points.sbp+' · HR '+n.points.hr+' · Temp '+n.points.temp+' · Consciousness '+n.points.consciousness+' · Oxygen '+n.points.oxygen}${n.singleThree?' · Single parameter scores 3.':''}${n.consciousnessInferred?' · LOC inferred from GCS '+(n.gcsBasis??'not recorded')+' (prototype).':''}${vitalDraft.assumptions?.length?' · Assumed context: '+esc(vitalDraft.assumptions.join('; ')):''}</p>`;
 }
-function gcsEditor(){return `<div class="gcs-grid">${Object.entries(CARE_CONFIG.gcs).map(([key,g])=>`<section><h3>${g.label}</h3>${g.options.map(([score,title,description])=>`<label class="gcs-choice"><input type="checkbox" data-gcs="${key}" value="${score}" ${gcsDraft[key]===score?'checked':''}><strong>${score} · ${title}</strong><span>${description}</span></label>`).join('')}<label class="gcs-choice"><input type="checkbox" data-gcs="${key}" value="NT" ${gcsDraft[key]==='NT'?'checked':''}><strong>NT · Not testable</strong><span>Interfering factor prevents assessment</span></label></section>`).join('')}</div><p id="gcsResult">${esc(gcsText(gcsDraft)||'No components recorded')}</p><a href="${CARE_CONFIG.gcsSource}" target="_blank" rel="noopener noreferrer">GCS assessment aid ↗</a>`;}
+function gcsEditor(){return gcsQuickEntry();}
 function wheelOpen(key){
- const keys=key==='bp'?['sbp','dbp']:[key];wheelDraft={keys,values:Object.fromEntries(keys.map(k=>[k,vitalDraft.values[k]??'']))};
+ const keys=key==='bp'?(vitalIsPalpated(vitalDraft)?['sbp']:['sbp','dbp']):[key];wheelDraft={keys,values:Object.fromEntries(keys.map(k=>[k,vitalDraft.values[k]??'']))};
  const wheel=$('wheelModal');wheel.innerHTML=`<div class="wheel-background" data-wheel-accept><div class="wheel-toolbar"><h2>${key==='bp'?'Blood pressure':CARE_CONFIG.vitals[key].label}</h2><span>Scroll or tap a value. Tap outside the wheels to accept.</span><button class="quiet" data-wheel-cancel>Cancel</button><button data-wheel-accept>Accept</button></div><p id="wheelError" role="alert"></p><div class="wheel-layout">${keys.map(k=>{
  const m=CARE_CONFIG.vitals[k],values=Array.from({length:Math.round((m.max-m.min)/m.step)+1},(_,i)=>Math.round((m.min+i*m.step)*10)/10);
  return `<section class="wheel-unit"><h3>${m.label} <small>${m.unit}</small></h3><p data-wheel-reading="${k}">${esc(wheelDraft.values[k]===''?'Not selected':wheelDraft.values[k])}</p><div class="number-wheel" tabindex="0" role="listbox" aria-label="${m.label} wheel" data-wheel-column="${k}">${values.map(n=>`<button role="option" aria-selected="false" data-wheel-value="${n}" data-wheel-key="${k}">${m.step===.1?n.toFixed(1):n}</button>`).join('')}</div></section>`;
@@ -155,7 +199,7 @@ function chooseProcedureEntry(kind,name=''){
  renderCare(true);
 }
 function stampCare(d){const date=new Date(d.local);if(!d.local||Number.isNaN(date.getTime()))return null;return {...d,at:date.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};}
-function saveVitalSet(){const errors=vitalErrors(vitalDraft),stamped=stampCare(vitalDraft);if(Object.values(vitalDraft.inkPending||{}).some(Boolean))errors.push('Wait for recognition or correct the displayed reading.');if(Object.entries(vitalDraft.ink||{}).some(([k,strokes])=>strokes.length&&!Number.isFinite(numericVital(vitalDraft.values[k],k))))errors.push('Review each handwritten reading, or clear unread ink.');if(!stamped)errors.push('Enter a valid observation date and time.');if(!Object.values(vitalDraft.values).some(x=>String(x).trim())&&!Object.keys(vitalDraft.gcs).length)errors.push('Record at least one vital sign.');if(errors.length){careError(errors.join(' '));return false;}const {index,...record}=stamped;for(const k of Object.keys(record.values)){const limit=vitalLimitValue(record.values[k],k);if(limit){record.values[k]=limit;continue;}const n=numericVital(record.values[k],k);if(n===null)delete record.values[k];else record.values[k]=n;}delete record.inkPending;delete record.inkRevision;record.handwritingReviewed=Object.values(record.ink||{}).some(x=>x.length>0);record.news2=news2(record);if(index===null)state.vitalSets.push(record);else state.vitalSets[index]=record;changed();delete pendingCare[currentCareKey()];$('careModal').close();vitalDraft=null;render();return true;}
+function saveVitalSet(){if(gcsComplete(vitalDraft.gcs))vitalDraft.values.gcs=gcsTotal(vitalDraft.gcs)??'';const errors=[...vitalErrors(vitalDraft),...gcsEntryErrors(vitalDraft)],stamped=stampCare(vitalDraft);if(Object.values(vitalDraft.inkPending||{}).some(Boolean))errors.push('Wait for recognition or correct the displayed reading.');if(Object.entries(vitalDraft.ink||{}).some(([k,strokes])=>strokes.length&&!Number.isFinite(numericVital(vitalDraft.values[k],k))))errors.push('Review each handwritten reading, or clear unread ink.');if(!stamped)errors.push('Enter a valid observation date and time.');if(!Object.values(vitalDraft.values).some(x=>String(x).trim())&&!Object.keys(vitalDraft.gcs).length)errors.push('Record at least one vital sign.');if(errors.length){careError(errors.join(' '));return false;}const {index,...record}=stamped;for(const k of Object.keys(record.values)){if(k==='dbp'&&vitalIsPalpated(record)){record.values.dbp='palpated';continue;}if(k==='o2flow'&&record.oxygen!=='Oxygen'){delete record.values[k];continue;}const limit=vitalLimitValue(record.values[k],k);if(limit){record.values[k]=limit;continue;}const n=numericVital(record.values[k],k);if(n===null)delete record.values[k];else record.values[k]=n;}delete record.inkPending;delete record.inkRevision;delete record.oxygenFlowDraft;record.handwritingReviewed=Object.values(record.ink||{}).some(x=>x.length>0);record.news2=news2(record);if(index===null)state.vitalSets.push(record);else state.vitalSets[index]=record;changed();delete pendingCare[currentCareKey()];$('careModal').close();vitalDraft=null;render();return true;}
 function saveCareEvent(keepOpen=false){
  const d=stampCare(eventDraft);if(!d){careError('Enter a valid action date and time.');return false;}
  if(!d.name.trim()){careError('Enter the drug or intervention performed.');return false;}
@@ -172,12 +216,13 @@ function saveCareEvent(keepOpen=false){
 }
 // These handlers only recognise this module's data attributes.
 document.addEventListener('input',e=>{const t=e.target;
- if(t.dataset.vital){const key=t.dataset.vital;vitalDraft.values[key]=t.value;if(key==='gcs')vitalDraft.gcs={};if(vitalDraft.inkSource){vitalDraft.inkSource[key]='corrected';vitalDraft.inkPending[key]=false;vitalDraft.inkRevision[key]=(vitalDraft.inkRevision[key]||0)+1;}updateNewsDisplay();}
+ if(t.dataset.vital){const key=t.dataset.vital;if(['o2flow','etco2','crt'].includes(key)&&!/^\d*(?:[.,]\d?)?$/.test(t.value)){t.value=vitalDraft.values[key]??'';return;}vitalDraft.values[key]=t.value.replace?.(',','.')??t.value;if(key==='gcs')vitalDraft.gcs={};if(vitalDraft.inkSource){vitalDraft.inkSource[key]='corrected';vitalDraft.inkPending[key]=false;vitalDraft.inkRevision[key]=(vitalDraft.inkRevision[key]||0)+1;}updateNewsDisplay();}
  if(t.dataset.careTime!==undefined){const d=careView==='vitals'?vitalDraft:eventDraft;d.local=t.value;d.retrospective=true;const stamp=t.closest('.care-time')?.querySelector('strong');if(stamp)stamp.textContent=t.value.slice(11,16);}
  if(t.dataset.careField){if(careView==='procedure'&&t.dataset.careField==='name'&&t.value!==eventDraft.name){for(const k of ['dose','unit','route','details']){eventDraft[k]='';const input=document.querySelector('[data-care-field="'+k+'"]');if(input)input.value='';}}if(t.dataset.careField==='name')clearDrugForNameChange(t.value);eventDraft[t.dataset.careField]=t.value;if(t.dataset.careField==='name'&&eventDraft.kind==='drug'){eventDraft.drugSelected=false;renderDrugMatches();if(careView==='drug'||careView==='procedure'){delete eventDraft.repeatReminder;delete eventDraft.repeatDismissed;delete eventDraft.repeatContext;delete eventDraft.repeatMinutes;updateDrugGuidance();}}if(careView==='drug')updateRepeatControl();}
  if(t.dataset.procedure){procedureDraft[t.dataset.procedure]=t.value;$('rsiDoses').innerHTML=rsiDoseMarkup(rsiReference(procedureDraft.weight,procedureDraft.category,procedureDraft.age));}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.hasAttribute?.('data-vital-palpated'))setVitalPalpated(t.checked);
  if(t.dataset.news){vitalDraft[t.dataset.news]=t.value;if(vitalDraft.assumptions)vitalDraft.assumptions=vitalDraft.assumptions.filter(x=>!({eligibility:['Adult ≥16, not pregnant'],oxygen:['Room air'],scale:['SpO₂ scale 1']}[t.dataset.news]||[]).includes(x));if(t.dataset.news==='scale'){vitalDraft.scale2Confirmed=false;document.querySelector('[data-news-confirm]').checked=false;$('scale2Confirmation').hidden=t.value!=='2';}updateNewsDisplay();}
  if(t.dataset.newsConfirm!==undefined){vitalDraft.scale2Confirmed=t.checked;updateNewsDisplay();}
  if(t.dataset.gcs){gcsDraft[t.dataset.gcs]=t.checked?(t.value==='NT'?'NT':Number(t.value)):undefined;if(!t.checked)delete gcsDraft[t.dataset.gcs];document.querySelectorAll('[data-gcs="'+t.dataset.gcs+'"]').forEach(x=>x.checked=String(gcsDraft[t.dataset.gcs])===x.value);$('gcsResult').textContent=gcsText(gcsDraft)||'No components recorded';}
@@ -189,13 +234,16 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('button');
  if(e.target.closest('[data-wheel-accept]')&&!e.target.closest('.number-wheel')&&!e.target.closest('[data-wheel-cancel]')){if(wheelDraft&&$('wheelModal').open)acceptWheel();return;}
  if(!b)return;
+ if(b.dataset.gcsWord)chooseGcsResponse(b.dataset.gcsWord,b.dataset.gcsScore);
+ if(b.dataset.vitalContext)setVitalContext(b.dataset.vitalContext,b.dataset.contextValue);
  if(b.dataset.careOpen){if(b.id==='addVitals'&&$('careModal').open)stashCareDraft();openCare(b.dataset.careOpen);}
  if(b.dataset.careEdit)openCare(b.dataset.careEdit==='vitals'?'vitals':state.careEvents[+b.dataset.index].kind,+b.dataset.index);
- if(b.dataset.careRemove){if(confirm('Remove this recorded entry?')){state[b.dataset.careRemove==='vitals'?'vitalSets':'careEvents'].splice(+b.dataset.index,1);changed();render();}}
+ if(b.dataset.careRemove){const store=b.dataset.careRemove==='vitals'?'vitalSets':'careEvents';if(typeof removeRecordedEntry==='function')removeRecordedEntry(store,+b.dataset.index,b.dataset.recordedId||'');else if(confirm('Remove this recorded entry?')){state[store].splice(+b.dataset.index,1);changed();render();}}
  if(b.dataset.careCancel!==undefined){if(careView==='gcs'){careView='vitals';renderCare();}else {delete pendingCare[currentCareKey()];$('careModal').close();if(careView==='vitals')vitalDraft=null;else eventDraft=null;}}
- if(b.dataset.careSave!==undefined){if(careView==='gcs'){vitalDraft.gcs=cloneCare(gcsDraft);vitalDraft.values.gcs=gcsTotal(gcsDraft)??'';if(vitalDraft.ink){vitalDraft.ink.gcs=[];vitalDraft.inkSource.gcs='components';vitalDraft.inkPending.gcs=false;}careView='vitals';renderCare();}else if(careView==='vitals')saveVitalSet();else if(careView==='procedure'){
+ if(b.dataset.careSave!==undefined){if(careView==='gcs'){if(!gcsComplete(gcsDraft)){careError('Select Motor, Voice and Eyes.');return;}vitalDraft.gcs=cloneCare(gcsDraft);vitalDraft.values.gcs=gcsTotal(gcsDraft)??'';if(vitalDraft.ink){vitalDraft.inkSource??={};vitalDraft.inkPending??={};vitalDraft.ink.gcs=[];vitalDraft.inkSource.gcs='components';vitalDraft.inkPending.gcs=false;}careView='vitals';renderCare();}else if(careView==='vitals')saveVitalSet();else if(careView==='procedure'){
   if(eventDraft.name.trim()||eventDraft.dose.trim()||eventDraft.details.trim())careError('Record the current entry or clear it before Done.');else {delete pendingCare[currentCareKey()];$('careModal').close();}
  }else saveCareEvent();}
+ if(b.dataset.gcsClear!==undefined){vitalDraft.gcs={};delete vitalDraft.values.gcs;if(vitalDraft.ink){vitalDraft.inkPending??={};vitalDraft.inkRevision??={};vitalDraft.ink.gcs=[];vitalDraft.inkPending.gcs=false;vitalDraft.inkRevision.gcs=(vitalDraft.inkRevision.gcs||0)+1;}renderCare(true);}
  if(b.dataset.careGcs!==undefined){gcsDraft=cloneCare(vitalDraft.gcs);careView='gcs';renderCare();}
  if(b.dataset.careWheel)wheelOpen(b.dataset.careWheel);
  if(b.dataset.wheelCancel!==undefined)$('wheelModal').close();

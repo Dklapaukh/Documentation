@@ -205,7 +205,7 @@ body.notes-reference-expanded #careModal { display:none; }
 
 /* Notes workspace: lighter paper and a compact, growing entry-notes line.
  * Scoped to Notes; the cardiac-arrest frame retains its own palette. */
-:root { --bg:#f6f6f3; --notes-guidance-bg:#f2f3ee; }
+:root { --bg:#fbfbf9; --surface:#fdfdfb; --notes-guidance-bg:#f9f9f7; }
 .reference-dock,.search-field,.library-search,.cpg-search-tools,
 #drugPane .drug-reference { background:var(--notes-guidance-bg); }
 .reference-dock #expandReference,.reference-dock #closeReference { background:var(--notes-guidance-bg); }
@@ -213,3 +213,19 @@ body.notes-reference-expanded #careModal { display:none; }
 #inlineCareHost .native-iv-entry textarea { min-height:40px; height:40px; padding:8px 10px; line-height:1.5; overflow-y:hidden; }
 /* Keep the medicine title clear of the top-corner sidebar arrows. */
 #drugPane .drug-cpg>h3 { padding-inline:18px; }
+
+/* Neutral near-white workspace with restrained corners outside the global header. */
+:root{--bg:#fafafa;--surface:#ffffff;--notes-guidance-bg:#fafafa;--notes-corner:5px}
+.app-shell :is(button,input:not([type=range]),select,textarea),
+body>dialog :is(button,input:not([type=range]),select,textarea){border-radius:var(--notes-corner)}
+.app-shell :is(.card,.falls-table,.clinical-prompt,.drug-guideline-section,.care-record,.paper-vital,.guideline-selector,.missing,.confirmation-check,.reference-link,.library-result,.pilot-reference-row),
+body>dialog:not(.arrest-modal){border-radius:var(--notes-corner)}
+.app-shell .complaint-category{border-radius:6px}
+.app-shell .complaint-category button{border-radius:4px}
+.app-shell .table-scroll{border-radius:var(--notes-corner)}
+#inlineCareHost>dialog[open]{border-radius:6px}
+.app-shell .pilot-tabs button{border-radius:8px}
+.app-shell .pilot-reference-row{border-radius:4px}
+.app-shell .pilot-admin.quiet{border-radius:4px}
+/* Preserve controls whose circular shape communicates their purpose. */
+.app-shell .round-record,body>dialog .round-record{border-radius:50%}
